@@ -1,0 +1,5 @@
+[workspace]
+members = [
+	"arrow-ctl",
+	"arrow-hal",
+]
