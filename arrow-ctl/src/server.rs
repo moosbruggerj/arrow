@@ -1,8 +1,8 @@
 pub mod handler;
-mod models;
 
+use super::config::Configuration;
 use super::message::WSUpdate;
-use log::{trace, error};
+use log::{error, trace};
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::SocketAddr;
@@ -10,18 +10,23 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 use warp::Filter;
+use sqlx::PgPool;
 
-#[derive(Clone,Debug)]
+const SHUTDOWN_CHANNEL_SIZE: usize = 8;
+
+#[derive(Clone, Debug)]
 pub struct Webserver {
     pub shutdown_tx: mpsc::Sender<()>,
-    sockets: models::Clients,
+    sockets: handler::Clients,
+    db_pool: PgPool,
 }
 
 impl Webserver {
-    pub fn new(shutdown_tx: mpsc::Sender<()>) -> Self {
+    pub fn new(shutdown_tx: mpsc::Sender<()>, db_pool: PgPool) -> Self {
         Self {
             shutdown_tx,
             sockets: Arc::new(RwLock::new(HashMap::new())),
+            db_pool,
         }
     }
 
@@ -68,7 +73,7 @@ fn register_routes(
             .and(warp::ws())
             .and(warp::path!("ws" / String))
             .and_then(handler::ws_connect))
-        .or_else(|_| async { Err(warp::reject())});
+        .or_else(|_| async { Err(warp::reject()) });
     routes
 }
 
@@ -78,14 +83,16 @@ fn with_db(
     warp::any().map(move || db.clone())
 }
 
-pub fn new() -> Result<
+pub async fn new(
+    config: &Configuration,
+) -> Result<
     (
         Builder<impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone>,
         Webserver,
     ),
     Box<(dyn Error)>,
 > {
-    Builder::from_factory(Box::new(register_routes))
+    Builder::from_factory(config, Box::new(register_routes)).await
 }
 
 impl<F> Builder<F>
@@ -94,11 +101,18 @@ where
     F::Extract: warp::Reply,
 {
     //type RouteType = impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
-    pub fn from_factory(
+    pub async fn from_factory(
+        config: &Configuration,
         routes_factory: Box<dyn Fn(Webserver) -> F>,
     ) -> Result<(Self, Webserver), Box<dyn Error>> {
-        let (tx, rx): (mpsc::Sender<()>, _) = mpsc::channel(8);
-        let wsrv = Webserver::new(tx);
+        let (tx, rx): (mpsc::Sender<()>, _) = mpsc::channel(SHUTDOWN_CHANNEL_SIZE);
+        let db_conn_str = format!(
+            "postgres://{}:{}@{}:{}/{}",
+            config.db.user, config.db.password, config.db.host, config.db.port, config.db.db
+        );
+        let pool = PgPool::connect(&db_conn_str).await?;
+        let wsrv = Webserver::new(tx, pool);
+
         let server = warp::serve(routes_factory(wsrv.clone()));
         let instance = Self {
             server,

@@ -21,7 +21,8 @@ The purpose of the software is to control the physical actors and sensors and pe
 # Development setup
 * `docker-compose -f dev_database.yml up -d`
   - shutdown: `docker-compose -f dev_database.yml down`
-  - shutdown + delete database: `docker-compose -f dev_database.yml down --volume`
+  - shutdown + delete database: `docker-compose -f dev_database.yml down --volumes`
 * Database admin at `localhost:8080`, username `postgres`, database `arrow`, password irrelevant
 * Building/running: `cargo build`/`cargo run`
   - To run with higher log level `cargo run -- -vvv`
+  - To check SQL queries against database export `DATABASE_URL=postgres://arrow:<password>@localhost/arrow` before building

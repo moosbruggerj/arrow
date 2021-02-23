@@ -17,7 +17,7 @@ CREATE TABLE bow (
 	id SERIAL PRIMARY KEY,
 	name CHARACTER VARYING(256) UNIQUE NOT NULL,
 	max_draw_distance REAL NOT NULL,
-	reminder_arrow_length REAL NOT NULL
+	remainder_arrow_length REAL NOT NULL
 );
 ALTER TABLE bow OWNER TO arrow;
 CREATE TRIGGER on_update_bow AFTER INSERT OR UPDATE ON bow EXECUTE PROCEDURE update_trigger();
@@ -26,10 +26,12 @@ CREATE TABLE measure_series (
 	id SERIAL PRIMARY KEY,
 	name CHARACTER VARYING(256) UNIQUE NOT NULL,
 	rest_position REAL NOT NULL,
-	draw_distance REAL NOT NULL,
-	draw_force REAL NOT NULL,
-	time TIMESTAMP NOT NULL,
+	draw_distance REAL,
+	draw_force REAL,
+	time TIMESTAMPTZ NOT NULL,
 	bow_id INTEGER NOT NULL REFERENCES bow(id) ON UPDATE CASCADE
+	CONSTRAINT chk_end_condition CHECK (draw_distance IS NOT NULL OR draw_force IS NOT NULL)
+
 );
 ALTER TABLE measure_series OWNER TO arrow;
 CREATE TRIGGER on_update_measure_series AFTER INSERT OR UPDATE ON measure_series EXECUTE PROCEDURE update_trigger();

@@ -15,6 +15,7 @@ pub struct DBConfiguration {
     pub host: String,
     pub port: u32,
     pub db: String,
+    pub password: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -33,10 +34,11 @@ pub struct Configuration {
 impl Default for DBConfiguration {
     fn default() -> Self {
         Self {
-            user: "arrow".to_string(),
-            host: "localhost".to_string(),
+            user: "arrow".into(),
+            host: "localhost".into(),
             port: 5432,
-            db: "arrow".to_string(),
+            db: "arrow".into(),
+            password: "14b8330c76fe611f9a62618f7dd37cd4".into(),
         }
     }
 }
@@ -60,7 +62,7 @@ impl Default for CmdArgs {
         Self {
             verbosity: LevelFilter::Warn,
             config_file: None,
-            log_file: "/tmp/arrow.log".to_string(),
+            log_file: "/var/log/arrow.log".into(),
         }
     }
 }

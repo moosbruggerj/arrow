@@ -2,6 +2,8 @@ mod config;
 mod controller;
 mod message;
 mod server;
+mod models;
+mod serde_timestamp;
 
 use clap::{App, Arg};
 use config::{CmdArgs, Configuration};
@@ -183,7 +185,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .thread_name("arrow-hw-tokio-worker")
         .build()?;
 
-    let (srv_handle, server) = server::new()?;
+    let (srv_handle, server) = web_rt.block_on(server::new(&config))?;
     let mut ctl = controller::Controller::new(server.clone())?;
     let ctl_sender = ctl.ctl_tx.clone();
     let hw_thread = thread::spawn(move || {
