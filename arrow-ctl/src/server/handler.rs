@@ -3,7 +3,6 @@ use super::super::models::*;
 use super::Webserver;
 
 use futures::{FutureExt, StreamExt};
-use serde_json::from_str;
 use uuid::Uuid;
 
 use warp::reply::json;
@@ -120,7 +119,15 @@ pub async fn handle_ws_message(
         let response = match request {
             WSRequest::ListBows {} => list_bows(srv).await,
             WSRequest::AddBow(bow) => add_bow(srv, bow).await,
+            WSRequest::AddArrow(arrow) => add_arrow(srv, arrow).await,
+            WSRequest::StartMeasure(measure) => start_measure(srv, measure).await,
             WSRequest::NewMeasureSeries(series) => add_measure_series(srv, series).await,
+            WSRequest::ListMeasureSeries { bow_id } => list_measure_series(srv, bow_id).await,
+            WSRequest::ListArrows { bow_id } => list_arrows(srv, bow_id).await,
+            WSRequest::ListMeasures { series_id } => list_measures(srv, series_id).await,
+            WSRequest::ListMeasurePoints { measure_id } => {
+                list_measure_points(srv, measure_id).await
+            }
         };
 
         let msg: warp::ws::Message = WSMessage::Response(match response {
@@ -187,4 +194,95 @@ async fn add_measure_series(
         id: rec.id,
         ..series
     }]))
+}
+
+async fn list_measure_series(
+    srv: Webserver,
+    bow_id: i32,
+) -> std::result::Result<WSUpdate, WSError> {
+    let series = sqlx::query_as!(
+        MeasureSeries,
+        "SELECT * FROM measure_series WHERE bow_id = $1",
+        bow_id
+    )
+    .fetch_all(&srv.db_pool)
+    .await?;
+
+    Ok(WSUpdate::MeasureSeriesList(series))
+}
+
+async fn list_arrows(srv: Webserver, bow_id: i32) -> std::result::Result<WSUpdate, WSError> {
+    let arrows = sqlx::query_as!(Arrow, "SELECT * FROM arrow WHERE bow_id = $1", bow_id)
+        .fetch_all(&srv.db_pool)
+        .await?;
+
+    Ok(WSUpdate::ArrowList(arrows))
+}
+
+async fn add_arrow(srv: Webserver, arrow: Arrow) -> std::result::Result<WSUpdate, WSError> {
+    let rec = sqlx::query!(
+        r#"INSERT INTO arrow 
+        (name, head_weight, spline, feather_length, feather_type, length, weight, bow_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id"#,
+        arrow.name,
+        arrow.head_weight,
+        arrow.spline,
+        arrow.feather_length,
+        arrow.feather_type,
+        arrow.length,
+        arrow.weight,
+        arrow.bow_id,
+    )
+    .fetch_one(&srv.db_pool)
+    .await?;
+    Ok(WSUpdate::ArrowList(vec![Arrow {
+        id: rec.id,
+        ..arrow
+    }]))
+}
+
+async fn list_measures(srv: Webserver, series_id: i32) -> std::result::Result<WSUpdate, WSError> {
+    let measures = sqlx::query_as!(
+        Measure,
+        "SELECT * FROM measure WHERE measure_series_id = $1",
+        series_id
+    )
+    .fetch_all(&srv.db_pool)
+    .await?;
+
+    Ok(WSUpdate::MeasureList(measures))
+}
+
+async fn start_measure(srv: Webserver, measure: Measure) -> std::result::Result<WSUpdate, WSError> {
+    let rec = sqlx::query!(
+        r#"INSERT INTO measure 
+        (measure_interval, measure_series_id, arrow_id)
+        VALUES ($1, $2, $3)
+        RETURNING id"#,
+        measure.measure_interval,
+        measure.measure_series_id,
+        measure.arrow_id,
+    )
+    .fetch_one(&srv.db_pool)
+    .await?;
+    Ok(WSUpdate::MeasureList(vec![Measure {
+        id: rec.id,
+        ..measure
+    }]))
+}
+
+async fn list_measure_points(
+    srv: Webserver,
+    measure_id: i32,
+) -> std::result::Result<WSUpdate, WSError> {
+    let measure_points = sqlx::query_as!(
+        MeasurePoint,
+        "SELECT * FROM measure_point WHERE measure_id = $1",
+        measure_id
+    )
+    .fetch_all(&srv.db_pool)
+    .await?;
+
+    Ok(WSUpdate::MeasurePointList(measure_points))
 }

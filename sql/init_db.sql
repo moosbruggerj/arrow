@@ -38,13 +38,14 @@ CREATE TRIGGER on_update_measure_series AFTER INSERT OR UPDATE ON measure_series
 
 CREATE TABLE arrow (
 	id SERIAL PRIMARY KEY,
+	name CHARACTER VARYING(128),
 	head_weight REAL,
 	spline REAL,
 	feather_length REAL,
 	feather_type CHARACTER VARYING(128),
 	length REAL NOT NULL,
 	weight REAL NOT NULL,
-	measure_series_id INTEGER NOT NULL REFERENCES measure_series(id) ON UPDATE CASCADE,
+	--measure_series_id INTEGER NOT NULL REFERENCES measure_series(id) ON UPDATE CASCADE,
 	bow_id INTEGER NOT NULL REFERENCES bow(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 ALTER TABLE arrow OWNER TO arrow;
@@ -61,7 +62,7 @@ CREATE TRIGGER on_update_measure AFTER INSERT OR UPDATE ON measure EXECUTE PROCE
 
 CREATE TABLE measure_point (
 	id SERIAL PRIMARY KEY,
-	time INTERVAL NOT NULL, 
+	time BIGINT NOT NULL,
 	draw_distance DOUBLE PRECISION NOT NULL,
 	force DOUBLE PRECISION NOT NULL,
 	measure_id INTEGER NOT NULL REFERENCES measure(id) ON UPDATE CASCADE ON DELETE CASCADE

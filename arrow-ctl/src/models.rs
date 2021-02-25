@@ -26,6 +26,45 @@ pub struct MeasureSeries {
     pub bow_id: i32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Arrow {
+    #[serde(default="invalid_id")]
+    pub id: i32,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub head_weight: Option<f32>,
+    #[serde(default)]
+    pub spline: Option<f32>,
+    #[serde(default)]
+    pub feather_length: Option<f32>,
+    #[serde(default)]
+    pub feather_type: Option<String>,
+    pub length: f32,
+    pub weight: f32,
+    pub bow_id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Measure {
+    #[serde(default="invalid_id")]
+    pub id: i32,
+    pub measure_interval: f32,
+    pub measure_series_id: i32,
+    pub arrow_id: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MeasurePoint {
+    #[serde(default="invalid_id")]
+    pub id: i32,
+    pub time: i64,
+    pub draw_distance: f64,
+    pub force: f64,
+    pub measure_id: i32,
+}
+
+
 fn invalid_id() -> i32 {
     -1
 }

@@ -1,8 +1,8 @@
 use super::models::*;
 use log::error;
 use serde::{Deserialize, Serialize};
-use std::result::Result;
 use std::convert::TryFrom;
+use std::result::Result;
 
 #[derive(Clone)]
 pub enum ControlMessage {
@@ -20,6 +20,9 @@ pub enum WSUpdate {
     Alive {},
     BowList(Vec<Bow>),
     MeasureSeriesList(Vec<MeasureSeries>),
+    ArrowList(Vec<Arrow>),
+    MeasureList(Vec<Measure>),
+    MeasurePointList(Vec<MeasurePoint>),
     Error(String),
 }
 
@@ -27,14 +30,20 @@ pub enum WSUpdate {
 #[serde(rename_all = "lowercase")]
 pub enum WSRequest {
     ListBows {},
+    ListMeasureSeries { bow_id: i32 },
+    ListArrows { bow_id: i32 },
+    ListMeasures { series_id: i32 },
+    ListMeasurePoints{ measure_id: i32,},
     AddBow(Bow),
-    NewMeasureSeries(MeasureSeries)
+    AddArrow(Arrow),
+    NewMeasureSeries(MeasureSeries),
+    StartMeasure(Measure),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum WSMessage {
-    Request( WSRequest),
+    Request(WSRequest),
     Update(WSUpdate),
     Response(WSUpdate),
 }
