@@ -1,16 +1,18 @@
 pub mod handler;
+pub mod notification;
 
 use super::config::Configuration;
 use super::message::WSUpdate;
 use log::{error, trace};
+use sqlx::PgPool;
 use std::collections::HashMap;
 use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use tokio_stream::StreamExt;
 use warp::Filter;
-use sqlx::PgPool;
 
 const SHUTDOWN_CHANNEL_SIZE: usize = 8;
 
@@ -111,7 +113,15 @@ where
             config.db.user, config.db.password, config.db.host, config.db.port, config.db.db
         );
         let pool = PgPool::connect(&db_conn_str).await?;
+        let listener = sqlx::postgres::PgListener::connect_with(&pool).await?;
+
         let wsrv = Webserver::new(tx, pool);
+        let notification_srv = wsrv.clone();
+
+        tokio::spawn(async move {
+            notification::notification_listener(listener, notification_srv).await?;
+            Ok::<_, sqlx::Error>(())
+        });
 
         let server = warp::serve(routes_factory(wsrv.clone()));
         let instance = Self {

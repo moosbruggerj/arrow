@@ -7,7 +7,7 @@ GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO arrow;
 CREATE OR REPLACE FUNCTION update_trigger() RETURNS trigger AS $$
 DECLARE
 BEGIN
-  PERFORM pg_notify('update', TG_TABLE_NAME);
+  PERFORM pg_notify('update', TG_TABLE_NAME || ',' || (select string_agg(id::text, ',' ORDER BY id) from new_table));
   RETURN new;
 END;
 $$ LANGUAGE plpgsql;
@@ -20,7 +20,8 @@ CREATE TABLE bow (
 	remainder_arrow_length REAL NOT NULL
 );
 ALTER TABLE bow OWNER TO arrow;
-CREATE TRIGGER on_update_bow AFTER INSERT OR UPDATE ON bow EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_insert_bow AFTER INSERT ON bow REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_update_bow AFTER UPDATE ON bow REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
 
 CREATE TABLE measure_series (
 	id SERIAL PRIMARY KEY,
@@ -34,7 +35,8 @@ CREATE TABLE measure_series (
 
 );
 ALTER TABLE measure_series OWNER TO arrow;
-CREATE TRIGGER on_update_measure_series AFTER INSERT OR UPDATE ON measure_series EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_insert_measure_series AFTER INSERT ON measure_series REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_update_measure_series AFTER UPDATE ON measure_series REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
 
 CREATE TABLE arrow (
 	id SERIAL PRIMARY KEY,
@@ -49,7 +51,8 @@ CREATE TABLE arrow (
 	bow_id INTEGER NOT NULL REFERENCES bow(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 ALTER TABLE arrow OWNER TO arrow;
-CREATE TRIGGER on_update_arrow AFTER INSERT OR UPDATE ON arrow EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_insert_arrow AFTER INSERT ON arrow REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_update_arrow AFTER UPDATE ON arrow REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
 
 CREATE TABLE measure (
 	id SERIAL PRIMARY KEY,
@@ -58,7 +61,8 @@ CREATE TABLE measure (
 	arrow_id INTEGER NOT NULL REFERENCES arrow(id) ON UPDATE CASCADE
 );
 ALTER TABLE measure OWNER TO arrow;
-CREATE TRIGGER on_update_measure AFTER INSERT OR UPDATE ON measure EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_insert_measure AFTER INSERT ON measure REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_update_measure AFTER UPDATE ON measure REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
 
 CREATE TABLE measure_point (
 	id SERIAL PRIMARY KEY,
@@ -68,5 +72,6 @@ CREATE TABLE measure_point (
 	measure_id INTEGER NOT NULL REFERENCES measure(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 ALTER TABLE measure_point OWNER TO arrow;
-CREATE TRIGGER on_update_measure_point AFTER INSERT OR UPDATE ON measure_point EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_insert_measure_point AFTER INSERT ON measure_point REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
+CREATE TRIGGER on_update_measure_point AFTER UPDATE ON measure_point REFERENCING NEW TABLE AS new_table EXECUTE PROCEDURE update_trigger();
 
