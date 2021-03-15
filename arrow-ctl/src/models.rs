@@ -64,6 +64,13 @@ pub struct MeasurePoint {
     pub measure_id: i32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum MachineStatus {
+    Pause,
+    Shooting,
+    Error,
+}
 
 fn invalid_id() -> i32 {
     -1

@@ -23,6 +23,7 @@ pub enum WSUpdate {
     ArrowList(Vec<Arrow>),
     MeasureList(Vec<Measure>),
     MeasurePointList(Vec<MeasurePoint>),
+    Status(MachineStatus),
     Error(String),
 }
 
@@ -33,11 +34,21 @@ pub enum WSRequest {
     ListMeasureSeries { bow_id: i32 },
     ListArrows { bow_id: i32 },
     ListMeasures { series_id: i32 },
-    ListMeasurePoints{ measure_id: i32,},
+    ListMeasurePoints { measure_id: i32 },
     AddBow(Bow),
     AddArrow(Arrow),
     NewMeasureSeries(MeasureSeries),
     StartMeasure(Measure),
+    Command(MachineCommand),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum MachineCommand {
+    Calibrate,
+    Reset,
+    Restart,
+    Shutdown,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

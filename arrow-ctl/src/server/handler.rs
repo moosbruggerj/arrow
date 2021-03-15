@@ -128,6 +128,7 @@ pub async fn handle_ws_message(
             WSRequest::ListMeasurePoints { measure_id } => {
                 list_measure_points(srv, measure_id).await
             }
+            WSRequest::Command(command) => handle_arrow_command(command).await,
         };
 
         let msg: warp::ws::Message = WSMessage::Response(match response {
@@ -285,4 +286,8 @@ async fn list_measure_points(
     .await?;
 
     Ok(WSUpdate::MeasurePointList(measure_points))
+}
+
+async fn handle_arrow_command(command: MachineCommand) -> std::result::Result<WSUpdate, WSError> {
+    Ok(WSUpdate::Alive {})
 }
