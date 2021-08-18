@@ -1,4 +1,5 @@
 use super::Webserver;
+use super::database::ArrowDB;
 use crate::message::WSUpdate::*;
 use crate::models::*;
 use log::trace;
@@ -23,7 +24,7 @@ macro_rules! query_table {
             "SELECT * FROM " + $table + " WHERE id = ANY($1::INT[])",
             &$data
         )
-        .fetch_all(&$srv.db_pool)
+        .fetch_all(&$srv.db.db_pool)
         .await
         {
             Some($update(update))
@@ -33,9 +34,9 @@ macro_rules! query_table {
     };
 }
 
-pub async fn notification_listener(
+pub async fn notification_listener<F: ArrowDB>(
     mut listener: PgListener,
-    srv: Webserver,
+    srv: Webserver<F>,
 ) -> Result<(), sqlx::Error> {
     listener.listen_all(vec!["update"]).await?;
     let mut stream = listener.into_stream();

@@ -1,5 +1,6 @@
 use super::super::message::*;
 use super::super::models::*;
+use super::database::ArrowDB;
 use super::Webserver;
 
 use futures::{FutureExt, StreamExt};
@@ -36,7 +37,7 @@ pub type Clients = Arc<RwLock<HashMap<String, WSocket>>>;
 
 type Result<T> = std::result::Result<T, warp::Rejection>;
 
-pub async fn new_client(srv: Webserver) -> Result<impl warp::Reply> {
+pub async fn new_client(srv: Webserver<impl ArrowDB>) -> Result<impl warp::Reply> {
     let uuid = Uuid::new_v4().simple().to_string();
     let response = WSRegisterResponse {
         url: format!("/ws/{}", uuid),
@@ -49,13 +50,17 @@ pub async fn new_client(srv: Webserver) -> Result<impl warp::Reply> {
     Ok(json(&response))
 }
 
-pub async fn delete_client(srv: Webserver, id: String) -> Result<impl warp::Reply> {
+pub async fn delete_client<F: ArrowDB>(srv: Webserver<F>, id: String) -> Result<impl warp::Reply> {
     trace!("deleting client: {}", id);
     srv.sockets.write().await.remove(&id);
     Ok(warp::http::StatusCode::OK)
 }
 
-pub async fn ws_connect(srv: Webserver, ws: Ws, id: String) -> Result<impl warp::Reply> {
+pub async fn ws_connect<F: ArrowDB + 'static>(
+    srv: Webserver<F>,
+    ws: Ws,
+    id: String,
+) -> Result<impl warp::Reply> {
     trace!("trying to connect: {}", id);
     let client = srv.sockets.read().await.get(&id).cloned();
     match client {
@@ -64,7 +69,12 @@ pub async fn ws_connect(srv: Webserver, ws: Ws, id: String) -> Result<impl warp:
     }
 }
 
-async fn client_connection(ws: WebSocket, id: String, clients: Webserver, mut client: WSocket) {
+async fn client_connection<F: ArrowDB>(
+    ws: WebSocket,
+    id: String,
+    clients: Webserver<F>,
+    mut client: WSocket,
+) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
 
@@ -88,17 +98,17 @@ async fn client_connection(ws: WebSocket, id: String, clients: Webserver, mut cl
                 break;
             }
         };
-        handle_ws_message(&id, msg, clients.clone(), client_sender.clone()).await;
+        handle_ws_message(&id, msg, &clients, client_sender.clone()).await;
     }
 
     clients.sockets.write().await.remove(&id);
     info!(target: "arrow::web::ws", "{} disconnected", id);
 }
 
-pub async fn handle_ws_message(
+pub async fn handle_ws_message<F: ArrowDB>(
     _id: &String,
     msg: warp::ws::Message,
-    srv: Webserver,
+    srv: &Webserver<F>,
     response_channel: mpsc::UnboundedSender<std::result::Result<warp::ws::Message, warp::Error>>,
 ) {
     debug!(target: "arrow::web::ws", "received message '{:#?}'",  msg);
@@ -128,7 +138,7 @@ pub async fn handle_ws_message(
             WSRequest::ListMeasurePoints { measure_id } => {
                 list_measure_points(srv, measure_id).await
             }
-            WSRequest::Command(command) => handle_arrow_command(command).await,
+            WSRequest::Command(command) => handle_arrow_command(srv, command).await,
         };
 
         let msg: warp::ws::Message = WSMessage::Response(match response {
@@ -145,31 +155,21 @@ pub async fn handle_ws_message(
     }
 }
 
-async fn list_bows(srv: Webserver) -> std::result::Result<WSUpdate, WSError> {
-    let bows = sqlx::query_as!(Bow, "SELECT * FROM bow")
-        .fetch_all(&srv.db_pool)
-        .await?;
-
+async fn list_bows<F: ArrowDB>(srv: &Webserver<F>) -> std::result::Result<WSUpdate, WSError> {
+    let bows = srv.db.list_bows().await?;
     Ok(WSUpdate::BowList(bows))
 }
 
-async fn add_bow(srv: Webserver, bow: Bow) -> std::result::Result<WSUpdate, WSError> {
-    let rec = sqlx::query!(
-        r#"INSERT INTO bow 
-        (name, max_draw_distance, remainder_arrow_length)
-        VALUES ($1, $2, $3)
-        RETURNING id"#,
-        bow.name,
-        bow.max_draw_distance,
-        bow.remainder_arrow_length
-    )
-    .fetch_one(&srv.db_pool)
-    .await?;
-    Ok(WSUpdate::BowList(vec![Bow { id: rec.id, ..bow }]))
+async fn add_bow<F: ArrowDB>(
+    srv: &Webserver<F>,
+    bow: Bow,
+) -> std::result::Result<WSUpdate, WSError> {
+    let bow = srv.db.add_bow(bow).await?;
+    Ok(WSUpdate::BowList(vec![bow]))
 }
 
-async fn add_measure_series(
-    srv: Webserver,
+async fn add_measure_series<F: ArrowDB>(
+    srv: &Webserver<F>,
     series: MeasureSeries,
 ) -> std::result::Result<WSUpdate, WSError> {
     if series.draw_distance.is_none() && series.draw_force.is_none() {
@@ -177,117 +177,102 @@ async fn add_measure_series(
             "either draw_distance or draw_force must be set".into(),
         ));
     }
-    let rec = sqlx::query!(
-        r#"INSERT INTO measure_series 
-        (name, rest_position, draw_distance, draw_force, time, bow_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id"#,
-        series.name,
-        series.rest_position,
-        series.draw_distance,
-        series.draw_force,
-        series.time,
-        series.bow_id,
-    )
-    .fetch_one(&srv.db_pool)
-    .await?;
-    Ok(WSUpdate::MeasureSeriesList(vec![MeasureSeries {
-        id: rec.id,
-        ..series
-    }]))
+    let series = srv.db.add_measure_series(series).await?;
+    Ok(WSUpdate::MeasureSeriesList(vec![series]))
 }
 
-async fn list_measure_series(
-    srv: Webserver,
+async fn list_measure_series<F: ArrowDB>(
+    srv: &Webserver<F>,
     bow_id: i32,
 ) -> std::result::Result<WSUpdate, WSError> {
-    let series = sqlx::query_as!(
-        MeasureSeries,
-        "SELECT * FROM measure_series WHERE bow_id = $1",
-        bow_id
-    )
-    .fetch_all(&srv.db_pool)
-    .await?;
-
+    let series = srv.db.list_measurement_series(bow_id).await?;
     Ok(WSUpdate::MeasureSeriesList(series))
 }
 
-async fn list_arrows(srv: Webserver, bow_id: i32) -> std::result::Result<WSUpdate, WSError> {
-    let arrows = sqlx::query_as!(Arrow, "SELECT * FROM arrow WHERE bow_id = $1", bow_id)
-        .fetch_all(&srv.db_pool)
-        .await?;
-
+async fn list_arrows<F: ArrowDB>(
+    srv: &Webserver<F>,
+    bow_id: i32,
+) -> std::result::Result<WSUpdate, WSError> {
+    let arrows = srv.db.list_arrows(bow_id).await?;
     Ok(WSUpdate::ArrowList(arrows))
 }
 
-async fn add_arrow(srv: Webserver, arrow: Arrow) -> std::result::Result<WSUpdate, WSError> {
-    let rec = sqlx::query!(
-        r#"INSERT INTO arrow 
-        (name, head_weight, spline, feather_length, feather_type, length, weight, bow_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id"#,
-        arrow.name,
-        arrow.head_weight,
-        arrow.spline,
-        arrow.feather_length,
-        arrow.feather_type,
-        arrow.length,
-        arrow.weight,
-        arrow.bow_id,
-    )
-    .fetch_one(&srv.db_pool)
-    .await?;
-    Ok(WSUpdate::ArrowList(vec![Arrow {
-        id: rec.id,
-        ..arrow
-    }]))
+async fn add_arrow<F: ArrowDB>(
+    srv: &Webserver<F>,
+    arrow: Arrow,
+) -> std::result::Result<WSUpdate, WSError> {
+    let arrow = srv.db.add_arrow(arrow).await?;
+    Ok(WSUpdate::ArrowList(vec![arrow]))
 }
 
-async fn list_measures(srv: Webserver, series_id: i32) -> std::result::Result<WSUpdate, WSError> {
-    let measures = sqlx::query_as!(
-        Measure,
-        "SELECT * FROM measure WHERE measure_series_id = $1",
-        series_id
-    )
-    .fetch_all(&srv.db_pool)
-    .await?;
-
+async fn list_measures<F: ArrowDB>(
+    srv: &Webserver<F>,
+    series_id: i32,
+) -> std::result::Result<WSUpdate, WSError> {
+    let measures = srv.db.list_measures(series_id).await?;
     Ok(WSUpdate::MeasureList(measures))
 }
 
-async fn start_measure(srv: Webserver, measure: Measure) -> std::result::Result<WSUpdate, WSError> {
-    let rec = sqlx::query!(
-        r#"INSERT INTO measure 
-        (measure_interval, measure_series_id, arrow_id)
-        VALUES ($1, $2, $3)
-        RETURNING id"#,
-        measure.measure_interval,
-        measure.measure_series_id,
-        measure.arrow_id,
-    )
-    .fetch_one(&srv.db_pool)
-    .await?;
-    Ok(WSUpdate::MeasureList(vec![Measure {
-        id: rec.id,
-        ..measure
-    }]))
+async fn start_measure<F: ArrowDB>(
+    srv: &Webserver<F>,
+    measure: Measure,
+) -> std::result::Result<WSUpdate, WSError> {
+    let measure = srv.db.add_measure(measure).await?;
+    Ok(WSUpdate::MeasureList(vec![measure]))
 }
 
-async fn list_measure_points(
-    srv: Webserver,
+async fn list_measure_points<F: ArrowDB>(
+    srv: &Webserver<F>,
     measure_id: i32,
 ) -> std::result::Result<WSUpdate, WSError> {
-    let measure_points = sqlx::query_as!(
-        MeasurePoint,
-        "SELECT * FROM measure_point WHERE measure_id = $1",
-        measure_id
-    )
-    .fetch_all(&srv.db_pool)
-    .await?;
-
+    let measure_points = srv.db.list_measure_points(measure_id).await?;
     Ok(WSUpdate::MeasurePointList(measure_points))
 }
 
-async fn handle_arrow_command(command: MachineCommand) -> std::result::Result<WSUpdate, WSError> {
+async fn handle_arrow_command<F: ArrowDB>(
+    srv: &Webserver<F>,
+    command: MachineCommand,
+) -> std::result::Result<WSUpdate, WSError> {
     Ok(WSUpdate::Alive {})
+}
+
+#[cfg(test)]
+mod test {
+    use super::super::database::traits::MockDB;
+    use super::*;
+    fn mock_srv(db: MockDB) -> Webserver<impl ArrowDB> {
+        let (tx, _rx) = tokio::sync::mpsc::channel(8);
+        Webserver {
+            shutdown_tx: tx,
+            sockets: Arc::new(RwLock::new(HashMap::new())),
+            db,
+        }
+    }
+    #[tokio::test]
+    async fn test_list_bows() {
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut db = MockDB::new();
+        let bow = Bow {
+            id: 1,
+            name: "bow".into(),
+            max_draw_distance: 0.9,
+            remainder_arrow_length: 0.1,
+        };
+        let bow_c = bow.clone();
+        db.expect_list_bows().return_once(move || Ok(vec![bow_c]));
+        let srv = mock_srv(db);
+
+        handle_ws_message(
+            &"".into(),
+            WSMessage::Request(WSRequest::ListBows {}).into(),
+            &srv,
+            tx,
+        )
+        .await;
+        let response = rx.recv().await.unwrap();
+        assert_eq!(
+            response.unwrap(),
+            WSMessage::Response(WSUpdate::BowList(vec![bow])).into()
+        );
+    }
 }

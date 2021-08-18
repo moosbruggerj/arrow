@@ -1,4 +1,5 @@
 use crate::message;
+use crate::server::database::ArrowDB;
 use crate::server::Webserver;
 use std::error::Error;
 use tokio::sync::{broadcast, mpsc};
@@ -14,16 +15,19 @@ mod tests {
     }
 }
 
-pub struct Controller {
+pub struct Controller<F>
+where
+    F: ArrowDB,
+{
     pub ctl_rx: broadcast::Receiver<message::ControlMessage>,
     pub ctl_tx: mpsc::Sender<message::ControlMessage>,
-    pub server: Webserver,
+    pub server: Webserver<F>,
     ctl_send_tx: broadcast::Sender<message::ControlMessage>,
     ctl_recv_rx: mpsc::Receiver<message::ControlMessage>,
 }
 
-impl Controller {
-    pub fn new(server: Webserver) -> Result<Self, Box<dyn Error>> {
+impl<F: ArrowDB> Controller<F> {
+    pub fn new(server: Webserver<F>) -> Result<Self, Box<dyn Error>> {
         let (recv_tx, recv_rx) = tokio::sync::mpsc::channel(CONTROL_CHANNEL_SIZE);
         let (send_tx, send_rx) = tokio::sync::broadcast::channel(CONTROL_CHANNEL_SIZE);
         Ok(Self {

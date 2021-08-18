@@ -1,5 +1,6 @@
 pub mod handler;
-pub mod notification;
+//pub mod notification;
+pub mod database;
 
 use super::config::Configuration;
 use super::message::WSUpdate;
@@ -11,24 +12,26 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
-use tokio_stream::StreamExt;
 use warp::Filter;
 
 const SHUTDOWN_CHANNEL_SIZE: usize = 8;
 
 #[derive(Clone, Debug)]
-pub struct Webserver {
+pub struct Webserver<F>
+where
+    F: database::ArrowDB + Clone + Send,
+{
     pub shutdown_tx: mpsc::Sender<()>,
     sockets: handler::Clients,
-    db_pool: PgPool,
+    db: F,
 }
 
-impl Webserver {
-    pub fn new(shutdown_tx: mpsc::Sender<()>, db_pool: PgPool) -> Self {
+impl<F: database::ArrowDB + Clone + Send + 'static> Webserver<F> {
+    pub fn new(shutdown_tx: mpsc::Sender<()>, db: F) -> Self {
         Self {
             shutdown_tx,
             sockets: Arc::new(RwLock::new(HashMap::new())),
-            db_pool,
+            db,
         }
     }
 
@@ -48,6 +51,17 @@ impl Webserver {
                 )));
             });
     }
+
+    pub fn listen(self) {
+        let srv = self.clone();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        tokio::spawn(async move {
+            while let Some(msg) = rx.recv().await {
+                self.broadcast(msg).await;
+            }
+        });
+        tokio::spawn(async move { srv.db.listener(tx).await });
+    }
 }
 
 pub struct Builder<F>
@@ -59,8 +73,8 @@ where
     shutdown_rx: mpsc::Receiver<()>,
 }
 
-fn register_routes(
-    db: Webserver,
+fn register_routes<F: database::ArrowDB + 'static>(
+    db: Webserver<F>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     //let base = warp::any().map(move || db.clone());
     //let api = base.and(warp::path("api"));
@@ -79,9 +93,9 @@ fn register_routes(
     routes
 }
 
-fn with_db(
-    db: Webserver,
-) -> impl Filter<Extract = (Webserver,), Error = std::convert::Infallible> + Clone {
+fn with_db<F: database::ArrowDB>(
+    db: Webserver<F>,
+) -> impl Filter<Extract = (Webserver<F>,), Error = std::convert::Infallible> + Clone {
     warp::any().map(move || db.clone())
 }
 
@@ -90,7 +104,7 @@ pub async fn new(
 ) -> Result<
     (
         Builder<impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone>,
-        Webserver,
+        Webserver<impl database::ArrowDB>,
     ),
     Box<(dyn Error)>,
 > {
@@ -105,23 +119,20 @@ where
     //type RouteType = impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone
     pub async fn from_factory(
         config: &Configuration,
-        routes_factory: Box<dyn Fn(Webserver) -> F>,
-    ) -> Result<(Self, Webserver), Box<dyn Error>> {
+        routes_factory: Box<dyn Fn(Webserver<database::PgArrowDB>) -> F>,
+    ) -> Result<(Self, Webserver<database::PgArrowDB>), Box<dyn Error>> {
         let (tx, rx): (mpsc::Sender<()>, _) = mpsc::channel(SHUTDOWN_CHANNEL_SIZE);
         let db_conn_str = format!(
             "postgres://{}:{}@{}:{}/{}",
             config.db.user, config.db.password, config.db.host, config.db.port, config.db.db
         );
         let pool = PgPool::connect(&db_conn_str).await?;
-        let listener = sqlx::postgres::PgListener::connect_with(&pool).await?;
+        let db = database::PgArrowDB::new(pool);
 
-        let wsrv = Webserver::new(tx, pool);
+        let wsrv = Webserver::new(tx, db);
         let notification_srv = wsrv.clone();
 
-        tokio::spawn(async move {
-            notification::notification_listener(listener, notification_srv).await?;
-            Ok::<_, sqlx::Error>(())
-        });
+        notification_srv.listen();
 
         let server = warp::serve(routes_factory(wsrv.clone()));
         let instance = Self {

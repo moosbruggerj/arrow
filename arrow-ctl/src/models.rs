@@ -1,10 +1,10 @@
-use time::OffsetDateTime;
-use serde::{Serialize,Deserialize};
 use crate::serde_timestamp;
+use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Bow {
-    #[serde(default="invalid_id")]
+    #[serde(default = "invalid_id")]
     pub id: i32,
     pub name: String,
     pub max_draw_distance: f32,
@@ -13,7 +13,7 @@ pub struct Bow {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MeasureSeries {
-    #[serde(default="invalid_id")]
+    #[serde(default = "invalid_id")]
     pub id: i32,
     pub name: String,
     pub rest_position: f32,
@@ -28,7 +28,7 @@ pub struct MeasureSeries {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Arrow {
-    #[serde(default="invalid_id")]
+    #[serde(default = "invalid_id")]
     pub id: i32,
     #[serde(default)]
     pub name: Option<String>,
@@ -47,7 +47,7 @@ pub struct Arrow {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Measure {
-    #[serde(default="invalid_id")]
+    #[serde(default = "invalid_id")]
     pub id: i32,
     pub measure_interval: f32,
     pub measure_series_id: i32,
@@ -56,7 +56,7 @@ pub struct Measure {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MeasurePoint {
-    #[serde(default="invalid_id")]
+    #[serde(default = "invalid_id")]
     pub id: i32,
     pub time: i64,
     pub draw_distance: f64,
