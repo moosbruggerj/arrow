@@ -1,0 +1,585 @@
+{
+  "db": "PostgreSQL",
+  "101ebd61b30a52dae6f088fc7da0831ac522d8ecdc1b68b3b858a929d8eb0326": {
+    "query": "SELECT * FROM bow",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "max_draw_distance",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "remainder_arrow_length",
+          "type_info": "Float4"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "2900cb3569f7dacd117097b5bbde6bb74fe4a2fdf90c1b60dc9ce23fdc17e3c7": {
+    "query": "SELECT * FROM measure_point WHERE id = ANY($1::INT[])",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "time",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "draw_distance",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 3,
+          "name": "force",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 4,
+          "name": "measure_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "32e1d8bd081ed6a69ac95dd7138d5920741a7caa00b60a78230ed5440ed29708": {
+    "query": "SELECT * FROM measure WHERE measure_series_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "measure_interval",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 2,
+          "name": "measure_series_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "arrow_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "368ebddf247ce32915532f338d67bc83262bba0804da7d4acf354398a67f58d4": {
+    "query": "INSERT INTO measure_series \n            (name, rest_position, draw_distance, draw_force, time, bow_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Float4",
+          "Float4",
+          "Float4",
+          "Timestamptz",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "3f4565bde40f91a64c0555d15682b167f7ef2b63247e07acfe65917ba1e5f322": {
+    "query": "SELECT * FROM measure WHERE id = ANY($1::INT[])",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "measure_interval",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 2,
+          "name": "measure_series_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 3,
+          "name": "arrow_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "84c0075fe12fe7713c292195e9f97960ada138b8e34eb1105d70b15fa6af8ac4": {
+    "query": "SELECT * FROM measure_series WHERE id = ANY($1::INT[])",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "rest_position",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "draw_distance",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 4,
+          "name": "draw_force",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 5,
+          "name": "time",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "bow_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false
+      ]
+    }
+  },
+  "8db8e82d21f4fc43227ad4ceafac54a25fd627776f85f8df9d48a75f3be136bc": {
+    "query": "INSERT INTO bow \n            (name, max_draw_distance, remainder_arrow_length)\n            VALUES ($1, $2, $3)\n            RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Float4",
+          "Float4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "9e61acb350c06a5b508f041a85d4755095bc087de078305f1abd456e89225196": {
+    "query": "SELECT * FROM bow WHERE id = ANY($1::INT[])",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "max_draw_distance",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "remainder_arrow_length",
+          "type_info": "Float4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "a2294b96794af20d2cad78d66052b341be629382f21793ff98bfc345db16ace7": {
+    "query": "INSERT INTO arrow \n            (name, head_weight, spline, feather_length, feather_type, length, weight, bow_id)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Float4",
+          "Float4",
+          "Float4",
+          "Varchar",
+          "Float4",
+          "Float4",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "b5a3e7cb9b69f3a52a0a4273f72b2b4e28cafae8b9bf867a0406efe50fb67e9e": {
+    "query": "SELECT * FROM measure_point WHERE measure_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "time",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "draw_distance",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 3,
+          "name": "force",
+          "type_info": "Float8"
+        },
+        {
+          "ordinal": 4,
+          "name": "measure_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "bfc1af3588276c230b1396d5f405f1096bf28317f906ee6788de03f337d4f6ed": {
+    "query": "SELECT * FROM arrow WHERE bow_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "head_weight",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "spline",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 4,
+          "name": "feather_length",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 5,
+          "name": "feather_type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "length",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 7,
+          "name": "weight",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 8,
+          "name": "bow_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "eda01fcf04fa297f81f12317885315ec3a4f8dfbdcfb7fee3342d0841de2eae1": {
+    "query": "INSERT INTO measure \n            (measure_interval, measure_series_id, arrow_id)\n            VALUES ($1, $2, $3)\n            RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Float4",
+          "Int4",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
+  "f0051be88833ae7d8a378e6c319426674e283efcf7a444fc297a4165323fb62a": {
+    "query": "SELECT * FROM arrow WHERE id = ANY($1::INT[])",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "head_weight",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "spline",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 4,
+          "name": "feather_length",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 5,
+          "name": "feather_type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "length",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 7,
+          "name": "weight",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 8,
+          "name": "bow_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "f46b604940de72d559b8e43a7a03f833e2f403be335abdf4aeacb238bb1d25b8": {
+    "query": "SELECT * FROM measure_series WHERE bow_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "rest_position",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "draw_distance",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 4,
+          "name": "draw_force",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 5,
+          "name": "time",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 6,
+          "name": "bow_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false
+      ]
+    }
+  }
+}

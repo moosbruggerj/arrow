@@ -13,7 +13,7 @@ warp = "0.3"
 serde = {version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 uuid = { version = "0.4", features = ["serde", "v4"] }
-sqlx = { version = "0.5", features = [ "runtime-tokio-native-tls", "postgres", "macros", "time" ] }
+sqlx = { version = "0.5", features = [ "runtime-tokio-rustls", "postgres", "macros", "time", "offline" ] }
 arrow-hal = { path = "../arrow-hal" }
 log = "0.4"
 log4rs = "1.0.0"

@@ -1,0 +1,32 @@
+version: "3.3"
+services:
+  app:
+    image: arrow-pi
+    restart: always
+    build:
+      context: .
+    ports:
+      - 80:80
+    networks:
+      - backend
+
+  db:
+    image: arrow-db-pi
+    restart: always
+    build:
+      context: ./db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: arrow
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - 5432:5432
+    networks:
+      - backend
+
+volumes:
+  pgdata:
+
+networks:
+  backend:

@@ -5,7 +5,7 @@ services:
     restart: always
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./sql/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./sql/migrations/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
     #env_file:
     #- ./docker/db_creds.env
     environment:
