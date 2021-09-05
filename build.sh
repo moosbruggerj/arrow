@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 IMAGE=arrow-pi
 DB_IMAGE=arrow-db-pi
