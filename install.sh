@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 IMAGE=pi-docker-test
 DB_IMAGE=arrow-db-pi

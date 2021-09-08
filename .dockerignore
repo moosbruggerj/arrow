@@ -1,3 +1,4 @@
 target/
 .git/
 *.tar.gz
+*.tar
