@@ -217,7 +217,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         });
-        srv_handle.bind(([127, 0, 0, 1], 6000))?.1.await;
+        srv_handle.bind(([127, 0, 0, 1], 8000))?.1.await;
 
         handle.close();
         // Rust type inference helper

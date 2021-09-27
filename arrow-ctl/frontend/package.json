@@ -1,0 +1,15 @@
+{
+  "name": "arrow-frontend",
+  "version": "0.1.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+	"generate-tr": "elm-i18next-gen -s translations/translations.en.json -t src -o"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "elm-i18next-gen": "^1.1.0"
+  }
+}

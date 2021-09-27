@@ -16,3 +16,8 @@ Cargo.lock
 
 # deployment archive
 *.tar.gz
+
+# frontend build files
+arrow-ctl/static
+node_modules
+elm-stuff

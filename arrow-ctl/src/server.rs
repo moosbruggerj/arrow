@@ -89,6 +89,9 @@ fn register_routes<F: database::ArrowDB + 'static>(
             .and(warp::ws())
             .and(warp::path!("ws" / String))
             .and_then(handler::ws_connect))
+        .or(warp::path("static").and(warp::fs::dir("./static")))
+        .or(warp::get()
+            .and(warp::fs::file("./static/arrow.html")))
         .or_else(|_| async { Err(warp::reject()) });
     routes
 }
