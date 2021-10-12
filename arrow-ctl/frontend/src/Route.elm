@@ -8,12 +8,14 @@ import Url.Parser as Parser exposing ((</>), Parser, oneOf, s, string)
 type Route
     = Home
     | Settings
+    | NewMeasurement
 
 parser: Parser (Route -> a) a
 parser =
     oneOf
         [ Parser.map Home Parser.top
         , Parser.map Settings (s "settings")
+        , Parser.map NewMeasurement (s "measurement" </> s "new")
         ]
 
 fromUrl : Url -> Maybe Route
@@ -37,3 +39,6 @@ routeToPieces page =
 
         Settings ->
             [ "settings" ]
+
+        NewMeasurement ->
+            [ "measurement", "new" ]

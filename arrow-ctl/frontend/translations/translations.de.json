@@ -1,0 +1,16 @@
+{
+	"header": {
+		"shooting": "Schussvorgang"
+	},
+	"home": {
+		"newMeasurement": "Neue Messung",
+		"manageMeasurements": "Messungen verwalten",
+		"calibration": "Kalibrieren",
+		"help": "Hilfe"
+	},
+    "settings": {
+        "labels": {
+            "language": "Sprache"
+        }
+    }
+}

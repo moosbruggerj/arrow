@@ -11,12 +11,14 @@ import I18Next as I18N exposing (Translations)
 import Notification exposing (Notification)
 import Session exposing (Session)
 import Route
+import Models.MachineStatus as MachineStatus
 
 
 type Msg
     = DeleteNotification Session.NotificationId
     | ToggleMenu
     | HideMenu
+    | AbortShooting
 
 
 
@@ -29,9 +31,12 @@ type Msg
 view : Session -> (Msg -> msg) -> { title : String, content : Html msg, headerElement: Maybe (Html msg) } -> Browser.Document msg
 view session toMsg { title, content, headerElement} =
     { title = title ++ " Arro(w)"
-    , body = (viewHeader session toMsg headerElement) :: content :: [ viewFooter ]
+    , body = (viewHeader session toMsg headerElement) :: (wrapContent content) :: [ viewFooter ]
     }
 
+wrapContent: Html msg -> Html msg
+wrapContent content =
+  div [ class "mt-5", class "container", class "is-fluid", class "is-size-5"] [ content ]
 
 viewHeader : Session -> (Msg -> msg) -> Maybe (Html msg) -> Html msg
 viewHeader session toMsg headerElement =
@@ -57,9 +62,14 @@ viewTitleBar session toMsg insert =
                 ] |> Html.map toMsg
             , div [ class "navbar-end" ]
                 (
-                    if session.shootingInProgress then
-                        [ div [ class "navbar-item" ] 
-                            [ a [ class "navbar-link", class "is-arrowless", href "/shooting" ]
+                    if session.status == MachineStatus.Shooting then
+                        [ div [ class "navbar-item", class "py-0" ] 
+                            [ div [ class "navbar-link", class "is-arrowless", class "py-0", onClick AbortShooting ]
+                                [ span [ class "far", class "fa-stop-circle", class "is-size-2" ] []
+                                ]
+                            ] |> Html.map toMsg
+                        , div [ class "navbar-item", class "py-0" ] 
+                            [ a [ class "navbar-link", class "is-arrowless", class "py-0", href "/shooting" ]
                                 [ span [ class "fas", class "fa-exclamation-triangle", class "has-text-warning", class "mr-2" ] []
                                 , text <| THeader.shooting session.translations
                                 ]
@@ -137,3 +147,6 @@ update msg session =
 
         HideMenu ->
             ( { session | settingsVisible = False }, Cmd.none )
+
+        AbortShooting ->
+            ( session, Cmd.none ) -- TODO: send stop

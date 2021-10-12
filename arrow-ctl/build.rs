@@ -48,6 +48,7 @@ fn main() {
         Path::join(&env::current_dir().unwrap(), "frontend/css"),
         Path::join(&env::current_dir().unwrap(), "frontend/webfonts"),
         Path::join(&env::current_dir().unwrap(), "frontend/translations"),
+        Path::join(&env::current_dir().unwrap(), "frontend/images"),
     ];
     fs_extra::copy_items(&static_src, &frontend_path, &copy_options).unwrap();
     fs::copy(

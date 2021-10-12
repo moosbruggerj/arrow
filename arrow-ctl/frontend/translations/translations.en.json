@@ -1,5 +1,16 @@
 {
 	"header": {
 		"shooting": "Shooting in progress"
-	}
+	},
+	"home": {
+		"newMeasurement": "New measurement",
+		"manageMeasurements": "Manage measurements",
+		"calibration": "Calibrating",
+		"help": "Help"
+	},
+    "settings": {
+        "labels": {
+            "language": "Language"
+        }
+    }
 }

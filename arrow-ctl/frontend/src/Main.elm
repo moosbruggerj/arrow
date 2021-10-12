@@ -16,6 +16,7 @@ import Page.Blank
 import Page.NotFound
 import Route exposing (Route)
 import Session exposing (Session)
+import Message exposing (Message)
 
 
 
@@ -69,6 +70,7 @@ type Msg
     | PageMsg Page.Msg
     | SettingsMsg Settings.Msg
     | HomeMsg Home.Msg
+    | GotMessage Session Message
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -100,6 +102,12 @@ update msg model =
         (HomeMsg homeMsg, Home home) ->
             Home.update homeMsg home
                 |> updateWith Home HomeMsg
+
+        (GotMessage session message, NotFound _) ->
+            (updateSession model session, Cmd.none)
+
+        (GotMessage session message, Redirect _) ->
+            (updateSession model session, Cmd.none)
 
         (_, _) ->
             -- arrived at the wrong page, ignore
@@ -166,14 +174,27 @@ changeRouteTo route model =
             Settings.init session
                 |> updateWith Settings SettingsMsg
 
+        Just Route.NewMeasurement ->
+            ( NotFound session, Cmd.none ) --TODO
+
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    case model of
+        NotFound session ->
+            Session.subscriptions GotMessage session
 
+        Redirect session ->
+            Session.subscriptions GotMessage session
+
+        Home home ->
+            Sub.map HomeMsg (Home.subscriptions home)
+
+        Settings settings ->
+            Sub.map SettingsMsg (Settings.subscriptions settings)
 
 
 -- VIEW

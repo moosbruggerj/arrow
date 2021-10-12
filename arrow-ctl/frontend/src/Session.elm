@@ -1,8 +1,11 @@
-module Session exposing (Session, initSession, addNotifications, IdentifiedNotification, NotificationId, changeLanguage, navKey, toIdString )
+module Session exposing (Session, initSession, addNotifications, IdentifiedNotification, NotificationId, changeLanguage, navKey, toIdString, subscriptions )
 
 import I18Next as I18N
 import Browser.Navigation as Nav
 import Notification exposing (Notification)
+import Message exposing (Message)
+import Models.MachineStatus as MachineStatus exposing (MachineStatus)
+import Api
 
 type alias Session =
     { navKey : Nav.Key
@@ -11,7 +14,7 @@ type alias Session =
     , notifications : List IdentifiedNotification
     , nextNotificationId : NotificationId
     , settingsVisible: Bool
-    , shootingInProgress: Bool
+    , status: MachineStatus
     }
 
 type NotificationId
@@ -34,7 +37,7 @@ initSession key =
     , notifications = []
     , nextNotificationId = NotificationId 1
     , settingsVisible = False
-    , shootingInProgress = True
+    , status = MachineStatus.Shooting
     }
 
 addNotifications : Session -> List Notification -> Session
@@ -77,3 +80,33 @@ changeLanguage session lang translations =
 navKey: Session -> Nav.Key
 navKey session =
     session.navKey
+
+fromMessage: Session -> Message -> (Session, Message)
+fromMessage session message =
+  let 
+    updated =
+      case message.msg of
+        Message.MachineStatus status ->
+          { session | status = status }
+        
+        Message.Error err ->
+          addNotifications session [ Notification.toNotification { text = translateError session err, nType = "error" } ]
+
+        _ ->
+          session
+  in
+  (updated, message)
+
+translateError: Session -> String -> String
+translateError session key =
+    I18N.t session.translations key
+
+subscriptions: (Session -> Message -> msg) -> Session -> Sub msg
+subscriptions toMsg session =
+  Api.message (\msg ->
+    let 
+      (updated, message) 
+        = fromMessage session msg
+    in
+    toMsg updated message
+    )
