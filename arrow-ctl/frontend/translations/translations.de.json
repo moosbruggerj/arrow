@@ -12,5 +12,25 @@
         "labels": {
             "language": "Sprache"
         }
+    },
+    "bowSelection": {
+        "emptyList": "Keine Bögen gefunden.\nZeit welche zu erstellen.",
+        "saveBow": "Speichern",
+        "newBow": "Neuer Bogen",
+        "name": "Name",
+        "maxDrawDistance": "Maximalauszug",
+        "remainderArrowLength": "Restlänge"
+    },
+    "loading": "Laden",
+    "cancel": "Abbruch",
+    "error": {
+        "required": "Dises Feld ist notwendig",
+        "tooSmall": "Diser Wert ist zu niedrig",
+        "tooBig": "Dieser Wert is zu groß",
+        "numberRequired": "Dieser Wert muss eine Nummer sein"
+    },
+    "warning": {
+        "tooSmall": "Dieser Wert Wert is nicht plausibel. Er scheint zu klein",
+        "tooBig": "Dieser Wert Wert is nicht plausibel. Er scheint zu groß"
     }
 }

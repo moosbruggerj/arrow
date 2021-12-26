@@ -19,8 +19,12 @@ type Request
     | StartMeasure Measure
     | Command MachineCommand
 
-encode: Request -> Encode.Value
+encode : Request -> Encode.Value
 encode request =
+  Encode.object [ ( "request", encodeRequest request ) ]
+
+encodeRequest: Request -> Encode.Value
+encodeRequest request =
   Encode.object
     <| case request of
       ListBows {} ->

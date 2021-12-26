@@ -1,4 +1,4 @@
-module Models.MeasureSeries exposing(Id, MeasureSeries, idDecoder, decoder, encode, encodeId)
+module Models.MeasureSeries exposing(Id, MeasureSeries, idDecoder, decoder, encode, encodeId, idToString)
 
 import Time
 import Json.Decode as Decode exposing (Decoder)
@@ -64,3 +64,6 @@ encode { id, name, restPosition, drawDistance, drawForce, time, bowId } =
     , E.required "bow_id" Bow.encodeId bowId
     ]
 
+idToString: Id -> String
+idToString (Id id) =
+  String.fromInt id

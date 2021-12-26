@@ -6,7 +6,8 @@ use super::Webserver;
 use futures::{FutureExt, StreamExt};
 use uuid::Uuid;
 
-use warp::reply::json;
+use warp::http::status::StatusCode;
+use warp::reply::{json, with_status, Reply};
 use warp::ws::{WebSocket, Ws};
 
 use log::{debug, error, info, trace};
@@ -26,6 +27,71 @@ pub enum WSError {
 
     #[error("bad request: {0}.")]
     Logic(String),
+}
+
+macro_rules! api_endpoint {
+    ($api: ident, $func:ident ( ) ) => {
+        pub async fn $api<T: ArrowDB>(srv: Webserver<T>) -> Result<impl warp::Reply> {
+            $func(&srv)
+                .await
+                .map(|r| {
+                    warp::reply::with_status(
+                        warp::reply::json(&r),
+                        warp::http::status::StatusCode::OK,
+                    )
+                })
+                .or_else(|e| {
+                    let err = format!("Error while executing Request: {}", e);
+                    Ok(warp::reply::with_status(
+                        warp::reply::json(&WSUpdate::Error(err)),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    ))
+                })
+        }
+    };
+    ($api: ident, $func:ident ( $t1:ty ) ) => {
+        pub async fn $api<T: ArrowDB>(srv: Webserver<T>, p1: $t1) -> Result<impl warp::Reply> {
+            $func(&srv, p1)
+                .await
+                .map(|r| {
+                    warp::reply::with_status(
+                        warp::reply::json(&r),
+                        warp::http::status::StatusCode::OK,
+                    )
+                })
+                .or_else(|e| {
+                    let err = format!("Error while executing Request: {}", e);
+                    Ok(warp::reply::with_status(
+                        warp::reply::json(&WSUpdate::Error(err)),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    ))
+                })
+        }
+    };
+
+    ($api: ident, $func:ident ( $t1:ty, $t2: ty ) ) => {
+        pub async fn $api<T: ArrowDB>(
+            srv: Webserver<T>,
+            p1: $t1,
+            p2: $t2,
+        ) -> Result<impl warp::Reply> {
+            $func(&srv, p1, p2)
+                .await
+                .map(|r| {
+                    warp::reply::with_status(
+                        warp::reply::json(&r),
+                        warp::http::status::StatusCode::OK,
+                    )
+                })
+                .or_else(|e| {
+                    let err = format!("Error while executing Request: {}", e);
+                    Ok(warp::reply::with_status(
+                        warp::reply::json(&WSUpdate::Error(err)),
+                        warp::http::StatusCode::BAD_REQUEST,
+                    ))
+                })
+        }
+    };
 }
 
 #[derive(Clone, Debug)]
@@ -128,7 +194,7 @@ pub async fn handle_ws_message<F: ArrowDB>(
     if let WSMessage::Request(request) = message {
         let response = match request {
             WSRequest::ListBows {} => list_bows(srv).await,
-            WSRequest::AddBow(bow) => add_bow(srv, bow).await,
+            WSRequest::AddBow(bow) => modify_bow(srv, bow).await,
             WSRequest::AddArrow(arrow) => add_arrow(srv, arrow).await,
             WSRequest::StartMeasure(measure) => start_measure(srv, measure).await,
             WSRequest::NewMeasureSeries(series) => add_measure_series(srv, series).await,
@@ -160,14 +226,26 @@ async fn list_bows<F: ArrowDB>(srv: &Webserver<F>) -> std::result::Result<WSUpda
     Ok(WSUpdate::BowList(bows))
 }
 
-async fn add_bow<F: ArrowDB>(
+async fn modify_bow<F: ArrowDB>(
     srv: &Webserver<F>,
     bow: Bow,
 ) -> std::result::Result<WSUpdate, WSError> {
-    let bow = srv.db.add_bow(bow).await?;
-    Ok(WSUpdate::BowList(vec![bow]))
+    let modified: Bow;
+    if bow.id == invalid_id() {
+        modified = srv.db.add_bow(bow).await?;
+    } else {
+        modified = srv.db.update_bow(bow).await?;
+    }
+    Ok(WSUpdate::BowList(vec![modified]))
 }
 
+async fn delete_bow<F: ArrowDB>(
+    srv: &Webserver<F>,
+    bow_id: i32,
+) -> std::result::Result<WSUpdate, WSError> {
+    let _num = srv.db.delete_bow(bow_id).await?;
+    Ok(WSUpdate::BowList(vec![])) //TODO
+}
 async fn add_measure_series<F: ArrowDB>(
     srv: &Webserver<F>,
     series: MeasureSeries,
@@ -235,6 +313,21 @@ async fn handle_arrow_command<F: ArrowDB>(
 ) -> std::result::Result<WSUpdate, WSError> {
     Ok(WSUpdate::Alive {})
 }
+
+api_endpoint!(api_list_bows, list_bows());
+api_endpoint!(api_modify_bow, modify_bow(Bow));
+api_endpoint!(api_delete_bow, delete_bow(i32));
+api_endpoint!(api_add_measure_series, add_measure_series(MeasureSeries));
+api_endpoint!(api_list_measure_series, list_measure_series(i32));
+api_endpoint!(api_list_arrows, list_arrows(i32));
+api_endpoint!(api_add_arrow, add_arrow(Arrow));
+api_endpoint!(api_list_measures, list_measures(i32));
+api_endpoint!(api_start_measure, start_measure(Measure));
+api_endpoint!(api_list_measure_points, list_measure_points(i32));
+api_endpoint!(
+    api_handle_arrow_command,
+    handle_arrow_command(MachineCommand)
+);
 
 #[cfg(test)]
 mod test {

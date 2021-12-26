@@ -4,6 +4,7 @@ pub mod database;
 
 use super::config::Configuration;
 use super::message::WSUpdate;
+use crate::message::WSMessage;
 use log::{error, trace};
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -12,6 +13,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
+use warp::ws;
 use warp::Filter;
 
 const SHUTDOWN_CHANNEL_SIZE: usize = 8;
@@ -37,18 +39,14 @@ impl<F: database::ArrowDB + Clone + Send + 'static> Webserver<F> {
 
     pub async fn broadcast(&self, msg: WSUpdate) {
         trace!("broadcasting: {:#?}", msg);
+        let update: ws::Message = WSMessage::Update(msg).into();
         self.sockets
             .read()
             .await
             .iter()
             .filter_map(|(_, client)| client.sender.as_ref())
             .for_each(|sender| {
-                let _ = sender.send(Ok(warp::ws::Message::text(
-                    serde_json::ser::to_string(&msg).unwrap_or_else(|e| {
-                        error!("cannot parse WSUpdate: '{}'", e);
-                        String::from("")
-                    }),
-                )));
+                let _ = sender.send(Ok(update.clone()));
             });
     }
 
@@ -84,14 +82,67 @@ fn register_routes<F: database::ArrowDB + 'static>(
         .or(with_db(db.clone())
             .and(warp::path!("api" / "client" / "delete" / String))
             .and(warp::delete())
-            .and_then(handler::delete_client))
+            .and_then(handler::delete_client)).boxed()
         .or(with_db(db.clone())
             .and(warp::ws())
             .and(warp::path!("ws" / String))
-            .and_then(handler::ws_connect))
-        .or(warp::path("static").and(warp::fs::dir("./static")))
-        .or(warp::get()
-            .and(warp::fs::file("./static/arrow.html")))
+            .and_then(handler::ws_connect)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "bows"))
+            .and(warp::get())
+            .and_then(handler::api_list_bows)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "bow"))
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024*4))
+            .and(warp::body::json())
+            .and_then(handler::api_modify_bow)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "bow" / i32))
+            .and(warp::delete())
+            .and_then(handler::api_delete_bow)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "series"))
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024*4))
+            .and(warp::body::json())
+            .and_then(handler::api_add_measure_series)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / i32 / "series"))
+            .and(warp::get())
+            .and_then(handler::api_list_measure_series)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / i32 / "arrows"))
+            .and(warp::get())
+            .and_then(handler::api_list_arrows)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "arrow"))
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024*4))
+            .and(warp::body::json())
+            .and_then(handler::api_add_arrow)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / i32 / "measures"))
+            .and(warp::get())
+            .and_then(handler::api_list_measures)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "measure" / "start"))
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024*4))
+            .and(warp::body::json())
+            .and_then(handler::api_start_measure)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / i32 / "points"))
+            .and(warp::get())
+            .and_then(handler::api_list_measure_points)).boxed()
+        .or(with_db(db.clone())
+            .and(warp::path!("api" / "command"))
+            .and(warp::post())
+            .and(warp::body::content_length_limit(1024*4))
+            .and(warp::body::json())
+            .and_then(handler::api_handle_arrow_command)).boxed()
+        .or(warp::path("static").and(warp::fs::dir("./static"))).boxed()
+        .or(warp::get().and(warp::fs::file("./static/arrow.html"))).boxed()
         .or_else(|_| async { Err(warp::reject()) });
     routes
 }

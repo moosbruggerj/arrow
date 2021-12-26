@@ -85,7 +85,7 @@ fromMessage: Session -> Message -> (Session, Message)
 fromMessage session message =
   let 
     updated =
-      case message.msg of
+      case message of
         Message.MachineStatus status ->
           { session | status = status }
         

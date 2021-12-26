@@ -12,6 +12,7 @@ import I18Next as I18N
 import Notification exposing (Notification)
 import Page.Settings as Settings
 import Page.Home as Home
+import Page.Measurement.BowSelection as BowSelection
 import Page.Blank
 import Page.NotFound
 import Route exposing (Route)
@@ -45,6 +46,7 @@ type Model
     | Redirect Session
     | Home Home.Model
     | Settings Settings.Model
+    | BowSelection BowSelection.Model
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -70,6 +72,7 @@ type Msg
     | PageMsg Page.Msg
     | SettingsMsg Settings.Msg
     | HomeMsg Home.Msg
+    | BowSelectionMsg BowSelection.Msg
     | GotMessage Session Message
 
 
@@ -102,6 +105,10 @@ update msg model =
         (HomeMsg homeMsg, Home home) ->
             Home.update homeMsg home
                 |> updateWith Home HomeMsg
+
+        (BowSelectionMsg bowSelectionMsg, BowSelection bowSelection) ->
+            BowSelection.update bowSelectionMsg bowSelection
+                |> updateWith BowSelection BowSelectionMsg
 
         (GotMessage session message, NotFound _) ->
             (updateSession model session, Cmd.none)
@@ -141,6 +148,9 @@ updateSession model session =
         Settings settings ->
             Settings (Settings.updateSession session settings)
 
+        BowSelection bowSelection ->
+            BowSelection (BowSelection.updateSession session bowSelection)
+
 
 toSession: Model -> Session
 toSession model =
@@ -156,6 +166,9 @@ toSession model =
 
         Settings settings ->
             Settings.toSession settings
+
+        BowSelection bowSelection ->
+            BowSelection.toSession bowSelection
 
 changeRouteTo: Maybe Route -> Model -> (Model, Cmd Msg)
 changeRouteTo route model =
@@ -175,8 +188,8 @@ changeRouteTo route model =
                 |> updateWith Settings SettingsMsg
 
         Just Route.NewMeasurement ->
-            ( NotFound session, Cmd.none ) --TODO
-
+            BowSelection.init session
+                |> updateWith BowSelection BowSelectionMsg
 
 -- SUBSCRIPTIONS
 
@@ -195,6 +208,9 @@ subscriptions model =
 
         Settings settings ->
             Sub.map SettingsMsg (Settings.subscriptions settings)
+
+        BowSelection bowSelection ->
+            Sub.map BowSelectionMsg (BowSelection.subscriptions bowSelection)
 
 
 -- VIEW
@@ -222,6 +238,11 @@ view model =
         Settings settings ->
             Settings.view settings
                 |> mapDocumentType SettingsMsg
+                |> viewPage
+
+        BowSelection bowSelection ->
+            BowSelection.view bowSelection
+                |> mapDocumentType BowSelectionMsg
                 |> viewPage
 
 type alias PageDocument a =

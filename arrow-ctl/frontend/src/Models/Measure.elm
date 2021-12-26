@@ -1,4 +1,4 @@
-module Models.Measure exposing(Id, Measure, idDecoder, decoder, encode, encodeId)
+module Models.Measure exposing(Id, Measure, idDecoder, decoder, encode, encodeId, idToString)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as D
@@ -43,3 +43,6 @@ encode { id, measureInterval, measureSeriesId, arrowId } =
     , E.required "arrow_id" Arrow.encodeId arrowId
     ]
 
+idToString: Id -> String
+idToString (Id id) =
+  String.fromInt id

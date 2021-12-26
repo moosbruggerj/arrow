@@ -40,7 +40,13 @@ wrapContent content =
 
 viewHeader : Session -> (Msg -> msg) -> Maybe (Html msg) -> Html msg
 viewHeader session toMsg headerElement =
-    div [ class "header", class "is-size-5", style "position" "sticky", style "z-index" "1" ]
+    div 
+        [ class "header"
+        , class "is-size-5"
+        , style "position" "sticky"
+        , style "z-index" "1"
+        , style "top" "0"
+        ]
         [ viewNotifications session |> Html.map toMsg
         , viewTitleBar session toMsg headerElement
         ]

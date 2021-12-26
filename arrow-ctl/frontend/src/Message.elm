@@ -1,4 +1,4 @@
-module Message exposing ( Message, MessageType(..), decoder )
+module Message exposing ( Message(..), decoder, typeToString )
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as D
@@ -9,12 +9,7 @@ import Models.Measure as Measure exposing (Measure)
 import Models.MeasurePoint as MeasurePoint exposing (MeasurePoint)
 import Models.MachineStatus as MachineStatus exposing (MachineStatus)
 
-type alias Message =
-  { msg: MessageType
-  , isResponse: Bool
-  }
-
-type MessageType
+type Message
     = Alive
     | BowList (List Bow)
     | MeasureSeriesList (List MeasureSeries)
@@ -26,27 +21,6 @@ type MessageType
 
 decoder: Decoder Message
 decoder =
-  Decode.keyValuePairs Decode.value
-    |> Decode.andThen (\value ->
-      case value of
-        ((key, v) :: []) -> -- list must have exactly one tuple element
-          Decode.map2 Message
-            (Decode.field key messageTypeDecoder)
-            <| case key of
-              "response" ->
-                Decode.succeed True
-
-              "update" ->
-                Decode.succeed False
-
-              _ ->
-                Decode.fail "unknown message type"
-        _ ->
-          Decode.fail "unknown message format"
-    )
-
-messageTypeDecoder: Decoder MessageType
-messageTypeDecoder =
   Decode.keyValuePairs Decode.value
     |> Decode.andThen (\value ->
       case value of
@@ -82,3 +56,30 @@ messageTypeDecoder =
         _ ->
           Decode.fail "unknown message format"
    )
+
+typeToString: Message -> String
+typeToString msg =
+    case msg of
+        Alive ->
+            "Alive"
+
+        BowList _ ->
+            "Bow List"
+
+        MeasureSeriesList _ ->
+            "Measure Series List"
+
+        ArrowList _ ->
+            "Arrow List"
+
+        MeasureList _ ->
+            "Measure List"
+
+        MeasurePointList _ ->
+            "Measure Point List"
+
+        MachineStatus _ ->
+            "Machine Status"
+
+        Error _ ->
+            "Error"

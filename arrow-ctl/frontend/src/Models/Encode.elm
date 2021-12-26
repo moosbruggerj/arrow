@@ -1,4 +1,4 @@
-module Models.Encode exposing (required, maybe, object)
+module Models.Encode exposing (required, maybe, object, optional)
 
 import Json.Encode as Encode
 
@@ -10,6 +10,10 @@ maybe key encoder data =
 
     Nothing ->
       Nothing
+
+optional: String -> (a -> Maybe Encode.Value) -> a -> Maybe ( String, Encode.Value)
+optional key encoder data =
+  Maybe.map (\d -> (key, d)) (encoder data)
 
 required: String -> (a -> Encode.Value) -> a -> Maybe ( String, Encode.Value)
 required key encoder data =

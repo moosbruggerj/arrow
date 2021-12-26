@@ -72,6 +72,6 @@ pub enum MachineStatus {
     Error,
 }
 
-fn invalid_id() -> i32 {
+pub fn invalid_id() -> i32 {
     -1
 }

@@ -72,16 +72,7 @@ languageButton model lang altText =
         , onClick (Local (LanguageChanged lang))
         ]
         [ ]
-        {--
-    button
-        [ class "control"
-        , class "button"
-        , classList [ ("is-active", model.session.language == lang) ]
-        ]
-        [ span [ class "icon" ]
-            [ img [ src ("/static/images/lang-" ++ lang ++ ".png"), alt altText ] [] ]
-        ]
-        --}
+
 fetchTranslations: String -> Cmd Msg
 fetchTranslations lang =
     Http.get

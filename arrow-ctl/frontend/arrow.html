@@ -3,13 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <title>Arro(w)</title>
-  <link rel="stylesheet" href="static/css/bulma.min.css">
-  <link rel="stylesheet" href="static/css/fa.min.css">
-  <script src="static/main.js"></script>
+  <link rel="stylesheet" href="/static/css/bulma.min.css">
+  <link rel="stylesheet" href="/static/css/fa.min.css">
+  <link rel="stylesheet" href="/static/css/arrow.css">
+  <script src="/static/main.js"></script>
 </head>
 <body>
   <script>
 	let app = Elm.Main.init();
+    let msgBuffer = [];
+    let socket = null;
+    function flush() {
+      if(socket && socket.readyState == 1) { //is ready
+        for (const msg of msgBuffer) {
+          socket.send(JSON.stringify(msg))
+        }
+        msgBuffer = [];
+      }
+    }
+
+    app.ports.sendMessage.subscribe(msg => {
+      msgBuffer.push(msg);
+      flush();
+    });
+
 	fetch("/api/client/new")
       .then(response => {
         if(!response.ok) {
@@ -19,8 +36,8 @@
       })
       .then(data => {
         let url = "ws://" + window.location.host + data.url;
-        let socket = new WebSocket(url);
-        //app.ports.sendMessage.subscribe(msg => socket.send(JSON.stringify(msg)));
+        socket = new WebSocket(url);
+        socket.addEventListener("open", flush); // flush all pending messages on open
 
         socket.addEventListener("message", event => {
           app.ports.onMessageReceived.send(JSON.parse(event.data));

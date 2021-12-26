@@ -5,6 +5,7 @@ use crate::models::*;
 
 use async_trait::async_trait;
 
+use sqlx::Row;
 use sqlx::postgres::PgListener;
 use sqlx::PgPool;
 
@@ -73,6 +74,35 @@ impl ArrowDB for PgArrowDB {
         .fetch_one(&self.pool)
         .await?;
         Ok(Bow { id: rec.id, ..bow })
+    }
+
+    async fn update_bow(&self, bow: Bow) -> Result<Bow, sqlx::Error> {
+        let _rec = sqlx::query!(
+            r#"UPDATE bow 
+            SET
+            name = $1,
+            max_draw_distance = $2,
+            remainder_arrow_length = $3
+            WHERE id = $4"#,
+            bow.name,
+            bow.max_draw_distance,
+            bow.remainder_arrow_length,
+            bow.id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(bow)
+    }
+
+    async fn delete_bow(&self, bow_id: i32) -> Result<i32, sqlx::Error> {
+        let rec = sqlx::query!(
+            r#"DELETE FROM bow
+            WHERE id = $1"#,
+            bow_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(rec.try_get(0)?)
     }
 
     async fn list_measurement_series(&self, id: i32) -> Result<Vec<MeasureSeries>, sqlx::Error> {
@@ -217,9 +247,11 @@ impl ArrowDB for PgArrowDB {
 
 #[cfg(test)]
 mod test {
+    /*
     pub async fn connect_and_configure(conn_url: &str) -> Result<PgArrowDB, sqlx::Error> {
         let pool = PgPool::connect(conn_url).await?;
         sqlx::migrate!("db/migrations").run(&pool).await?;
         Ok(PgArrowDB::new(pool))
     }
+    */
 }

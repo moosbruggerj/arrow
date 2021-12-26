@@ -12,5 +12,25 @@
         "labels": {
             "language": "Language"
         }
+    },
+    "bowSelection": {
+        "emptyList": "There don't seem to be any bows.\nTry adding some.",
+        "saveBow": "Save",
+        "newBow": "New Bow",
+        "name": "Name",
+        "maxDrawDistance": "Maximum draw distance",
+        "remainderArrowLength": "Remaining arrow length"
+    },
+    "loading": "Loading",
+    "cancel": "Cancel",
+    "error": {
+        "required": "This field is required",
+        "tooSmall": "This value is too small",
+        "tooBig": "This value is too big",
+        "numberRequired": "This value must be a number"
+    },
+    "warning": {
+        "tooSmall": "This value seems to small to be plausible",
+        "tooBig": "This value seems to big to be plausible"
     }
 }

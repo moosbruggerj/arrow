@@ -181,6 +181,21 @@
       ]
     }
   },
+  "4fd4c2eb42bbb3928f9aba3f41e3ca82b73ba7efdbfb2dfec44308cb0e3fe9b9": {
+    "query": "UPDATE bow \n            SET\n            name = $1,\n            max_draw_distance = $2,\n            remainder_arrow_length = $3\n            WHERE id = $4",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Float4",
+          "Float4",
+          "Int4"
+        ]
+      },
+      "nullable": []
+    }
+  },
   "84c0075fe12fe7713c292195e9f97960ada138b8e34eb1105d70b15fa6af8ac4": {
     "query": "SELECT * FROM measure_series WHERE id = ANY($1::INT[])",
     "describe": {
@@ -257,6 +272,18 @@
       "nullable": [
         false
       ]
+    }
+  },
+  "9b8060689b7ade20da2a7da02873c6f83609de4e33ec24de76df22df24709ed7": {
+    "query": "DELETE FROM bow\n            WHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": []
     }
   },
   "9e61acb350c06a5b508f041a85d4755095bc087de078305f1abd456e89225196": {
