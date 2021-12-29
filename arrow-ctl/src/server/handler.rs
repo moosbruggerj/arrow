@@ -207,7 +207,7 @@ pub async fn handle_ws_message<F: ArrowDB>(
             WSRequest::Command(command) => handle_arrow_command(srv, command).await,
         };
 
-        let msg: warp::ws::Message = WSMessage::Response(match response {
+        let msg: warp::ws::Message = (match response {
             Ok(r) => r,
             Err(e) => {
                 let err = format!("Error while executing Request: {}", e);
@@ -243,8 +243,12 @@ async fn delete_bow<F: ArrowDB>(
     srv: &Webserver<F>,
     bow_id: i32,
 ) -> std::result::Result<WSUpdate, WSError> {
-    let _num = srv.db.delete_bow(bow_id).await?;
-    Ok(WSUpdate::BowList(vec![])) //TODO
+    let num = srv.db.delete_bow(bow_id).await?;
+    match num {
+        0 => Err(WSError::Logic("could not delete bow".into())),
+        1 => Ok(WSUpdate::Deletion(Deletion::Bow(bow_id))),
+        _ => Err(WSError::Logic("error deleting bow".into())),
+    }
 }
 async fn add_measure_series<F: ArrowDB>(
     srv: &Webserver<F>,

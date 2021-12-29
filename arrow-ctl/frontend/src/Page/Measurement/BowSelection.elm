@@ -2,7 +2,7 @@ module Page.Measurement.BowSelection exposing (Msg, Model, init, view, update, t
 
 import Browser
 import Html exposing (..)
-import Html.Attributes as Attr exposing (class, classList, type_, disabled)
+import Html.Attributes as Attr exposing (class, classList, type_, disabled, style)
 import Html.Events exposing (onClick, onInput)
 import Session exposing (Session)
 import Translations.BowSelection as TBowSelection
@@ -23,6 +23,8 @@ import Units.LengthUnit as LengthUnit exposing (LengthUnit)
 import Units.Length as Length exposing (Length)
 import Models exposing (Persisted(..))
 import Dict exposing (Dict)
+import Http
+import Models.Deletion as Deletion
 
 type alias Config =
     { maxDrawDistanceUnit: LengthUnit
@@ -103,6 +105,8 @@ type Msg
     | Cancel
     | GotMessage Session Message
     | GotBows (Result Error (List Bow))
+    | GotBow (Result Error (Bow))
+    | GotBowDeletion (Result Error Bow.Id)
 
 -- INIT
 
@@ -191,7 +195,27 @@ viewBows model bows =
         _ -> 
             Keyed.node "div" 
             []
-            (List.map (viewKeyedBow model) bowList) -- TODO: Filter/sort
+            (("header", viewListHeader model) :: (List.map (viewKeyedBow model) bowList)) -- TODO: Filter/sort
+
+viewListHeader: Model -> Html msg
+viewListHeader model =
+    let
+        translations = model.session.translations
+    in
+    div 
+        [ class "is-fluid"
+        , class "columns"
+        , class "mt-3"
+        , class "box"
+        , style "position" "sticky"
+        , style "top" "0pt"
+        ]
+        [ div [ class "column", class "is-two-fifths" ] [ h5 [] [ text (TBowSelection.name translations) ] ]
+        , div [ class "column" ] [ h5 [] [ text (TBowSelection.maxDrawDistance translations) ] ]
+        , div [ class "column" ] [ h5 [] [ text (TBowSelection.remainderArrowLength translations) ] ]
+        , div [ class "column", class "has-text-right" ] []
+        , div [ class "column", class "is-1" ] []
+        ]
 
 viewEmptyText : Model -> List (Html msg)
 viewEmptyText model =
@@ -273,8 +297,30 @@ viewEdit model =
         Edit id data submitting ->
             viewFormModal model data submitting (SubmitEdit id)
 
-        Delete (Persisted id data) submitting ->
-            div [] []
+        Delete bow submitting ->
+            viewDeleteModal model bow submitting (SubmitDelete (Models.toId bow))
+
+viewDeleteModal: Model -> Bow -> Bool -> Msg -> Html Msg
+viewDeleteModal model (Persisted id data) submitting submitMsg =
+    let
+        translations = model.session.translations
+    in
+    div [ class "modal", class "is-active" ]
+        [ div [ class "modal-background", onClick Cancel ] []
+        , div [ class "modal-card" ] 
+            [ header [ class "modal-card-head" ]
+                [ p [ class "modal-card-title" ]
+                    [ text (TBowSelection.deleteConfirmHeader translations) ]
+                , button [ class "delete", onClick Cancel ] []
+                ]
+            , section [ class "modal-card-body" ]
+                [ text (TBowSelection.deleteConfirm translations data.name) ]
+            , footer [ class "modal-card-foot" ]
+                [ button [ class "button", class "is-danger", class "is-medium", classList [ ("is-loading", submitting ) ], disabled submitting, onClick submitMsg ] [ text (Translations.delete translations) ]
+                , button [ class "button", class "is-medium", disabled submitting, onClick Cancel ] [ text (Translations.cancel translations) ]
+                ]
+            ]
+        ]
 
 viewFormModal: Model -> FormData -> Bool -> Msg -> Html Msg
 viewFormModal model data submitting submitMsg =
@@ -619,16 +665,46 @@ update message model =
             ( { model | edit = editState }, Cmd.none )
 
         SubmitNew ->
-            ( { model | edit = submittingEditState model.edit True }, Cmd.none ) -- TODO
+            let
+                (state, _, data) = submittingEditState model.edit True
+                cmd = case data of
+                    Just d ->
+                        Api.request (expectBow translations) Api.Endpoint.modifyBow (Http.jsonBody (Bow.encodeData d))
+
+                    Nothing ->
+                        Cmd.none
+
+            in
+            ( { model | edit = state }, cmd )
 
         SubmitEdit id ->
-            ( { model | edit = submittingEditState model.edit True }, Cmd.none ) -- TODO
+            let
+                (state, i, data) = submittingEditState model.edit True
+                cmd = case data of
+                    Just d ->
+                        Api.request (expectBow translations) Api.Endpoint.modifyBow (Http.jsonBody (Bow.encode (Persisted id d)))
 
-        SubmitDelete id ->
-            ( { model | edit = submittingEditState model.edit True }, Cmd.none ) -- TODO
+                    Nothing ->
+                        Cmd.none
+
+            in
+            ( { model | edit = state }, cmd )
+
+        SubmitDelete _ ->
+            let
+                (state, id, _) = submittingEditState model.edit True
+                cmd = case id of
+                    Just i ->
+                        Api.request (expectBowDelete translations) (Api.Endpoint.deleteBow i) Http.emptyBody
+
+                    Nothing ->
+                        Cmd.none
+
+            in
+            ( { model | edit = state }, cmd )
 
         DeleteBow bow ->
-            ( { model | edit = Delete bow False }, Cmd.none ) -- TODO
+            ( { model | edit = Delete bow False }, Cmd.none )
 
         EditBow bow ->
             ( { model | edit = editFromBow bow }, Cmd.none )
@@ -637,13 +713,65 @@ update message model =
             ( { model | edit = None }, Cmd.none )
 
         GotBows (Err err) ->
-            ( model, Cmd.none )
+            ( updateSession (Session.addApiError model.session err) model , Cmd.none )
 
         GotBows (Ok bows) ->
             ( { model | bows = Data ( (List.map (\b -> (Bow.idToInt (Models.toId b), (b, False))) bows) |> Dict.fromList) }, Cmd.none)
 
+        GotBow (Err err) ->
+            ( updateSession (Session.addApiError model.session err) { model | edit = None }, Cmd.none )
+
+        GotBow (Ok bow) ->
+            ( { model | bows = Data (updateBowList model [ bow ] True )
+                , edit = None }, Cmd.none )
+
+        GotBowDeletion (Err err) ->
+            ( updateSession (Session.addApiError model.session err) { model | edit = None }, Cmd.none )
+
+        GotBowDeletion (Ok id) ->
+            ( { model | bows = deleteFromBowList model id
+                , edit = None }, Cmd.none )
+
         GotMessage session msg ->
             updateOnMessage { model | session = session } msg
+
+expectBowDelete: I18N.Translations -> Result Error Message -> Msg
+expectBowDelete translations msg =
+    GotBowDeletion <|
+    case msg of
+        Err e ->
+            Err e
+
+        Ok (Message.Error e) ->
+            Err (Api.Error.Api e)
+
+        Ok (Message.Deletion (Deletion.BowDeletion id )) ->
+            Ok (id)
+
+        Ok (Message.Deletion del ) ->
+            Err (Api.Error.Api (TError.unexpectedDeletion translations (Deletion.typeToString del)))
+
+        Ok ( m ) ->
+            Err (Api.Error.Api (TError.unexpectedMessageType translations "Deletion" (Message.typeToString m)))
+
+expectBow: I18N.Translations -> Result Error Message -> Msg
+expectBow translations msg =
+    GotBow <|
+    case msg of
+        Err e ->
+            Err e
+
+        Ok (Message.Error e) ->
+            Err (Api.Error.Api e)
+
+        Ok (Message.BowList [ bow ] ) ->
+            Ok (bow)
+
+        Ok (Message.BowList bows ) ->
+            Err (Api.Error.Api (TError.unexpectedArgNum translations "1" (String.fromInt (List.length bows))))
+
+        Ok ( m ) ->
+            Err (Api.Error.Api (TError.unexpectedMessageType translations "BowList" (Message.typeToString m)))
 
 editFromBow: Bow -> EditState
 editFromBow (Persisted id data) =
@@ -654,20 +782,61 @@ editFromBow (Persisted id data) =
         }
         False
 
-submittingEditState: EditState -> Bool -> EditState
+inputStateToMaybe : InputState a -> Maybe a
+inputStateToMaybe state = 
+    case state of
+        Validated a ->
+            Just a
+        Warning { value } ->
+            Just value
+        _ ->
+            Nothing
+
+parseBowForm: FormData -> Maybe Bow.Data
+parseBowForm data =
+    let
+        name = inputStateToMaybe data.name
+        maxDrawDistance = inputStateToMaybe data.maxDrawDistance
+        remainderArrowLength = inputStateToMaybe data.remainderArrowLength
+    in
+    case (name, maxDrawDistance, remainderArrowLength) of
+        (Just n, Just dd, Just rem) ->
+            Just (Bow.Data n dd rem)
+
+        _ ->
+            Nothing
+
+submittingEditState: EditState -> Bool -> (EditState, Maybe Bow.Id, Maybe Bow.Data)
 submittingEditState state submitting =
+    let
+        valid parsed old =
+            case parsed of
+                Nothing ->
+                    old
+
+                Just _ ->
+                    submitting
+    in
     case state of
         None ->
-            None
+            (None, Nothing, Nothing)
 
-        New data _ ->
-            New data submitting
+        New data oldSub ->
+            let
+                parsed = parseBowForm data
+                sub = valid parsed oldSub
+            in
+            (New data sub, Nothing, parsed)
 
-        Edit id data _ ->
-            Edit id data submitting
+        Edit id data oldSub ->
+            let
+                parsed = parseBowForm data
+                sub = valid parsed oldSub
+            in
+            (Edit id data sub, Just id, parsed)
 
         Delete bow _ ->
-            Delete bow submitting
+            (Delete bow submitting, Just (Models.toId bow), Just (Models.toData bow))
 
 updateEditState: EditState -> (FormData -> FormData) -> EditState
 updateEditState state updater =
@@ -716,6 +885,15 @@ updateOnMessage model msg =
 
         _ ->
             (model, Cmd.none)
+
+deleteFromBowList: Model -> Bow.Id -> RemoteData BowList
+deleteFromBowList model id =
+    case model.bows of
+        Data list ->
+            Data (Dict.remove (Bow.idToInt id) list)
+
+        a ->
+            a
 
 mergeBowList: BowList -> List (Bow, Bool) -> BowList
 mergeBowList list new =

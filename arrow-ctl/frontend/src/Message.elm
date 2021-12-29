@@ -8,6 +8,7 @@ import Models.MeasureSeries as MeasureSeries exposing (MeasureSeries)
 import Models.Measure as Measure exposing (Measure)
 import Models.MeasurePoint as MeasurePoint exposing (MeasurePoint)
 import Models.MachineStatus as MachineStatus exposing (MachineStatus)
+import Models.Deletion as Deletion exposing (Deletion)
 
 type Message
     = Alive
@@ -16,6 +17,7 @@ type Message
     | ArrowList (List Arrow)
     | MeasureList (List Measure)
     | MeasurePointList (List MeasurePoint)
+    | Deletion Deletion
     | MachineStatus MachineStatus
     | Error String
 
@@ -51,6 +53,9 @@ decoder =
               "error" ->
                 Decode.map Error Decode.string
 
+              "deletion" ->
+                Decode.map Deletion Deletion.decoder
+
               _ ->
                 Decode.fail "unknown message type"
         _ ->
@@ -80,6 +85,9 @@ typeToString msg =
 
         MachineStatus _ ->
             "Machine Status"
+
+        Deletion _ ->
+            "Deletion"
 
         Error _ ->
             "Error"

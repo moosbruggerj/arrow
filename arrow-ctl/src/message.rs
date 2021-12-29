@@ -24,7 +24,18 @@ pub enum WSUpdate {
     MeasureList(Vec<Measure>),
     MeasurePointList(Vec<MeasurePoint>),
     Status(MachineStatus),
+    Deletion(Deletion),
     Error(String),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum Deletion {
+    Bow(i32),
+    MeasureSeries(i32),
+    Arrow(i32),
+    Measure(i32),
+    MeasurePoint(i32),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -73,6 +84,26 @@ impl TryFrom<warp::ws::Message> for WSMessage {
     type Error = serde_json::Error;
 
     fn try_from(msg: warp::ws::Message) -> Result<WSMessage, serde_json::Error> {
+        let str = msg.to_str().unwrap_or("");
+        serde_json::de::from_str(&str)
+    }
+}
+
+
+impl Into<warp::ws::Message> for WSUpdate {
+    fn into(self) -> warp::ws::Message {
+        warp::ws::Message::text(serde_json::ser::to_string(&self).unwrap_or_else(|e| {
+            let err = format!("error serializing upate: {}", e);
+            error!("{}", err);
+            serde_json::ser::to_string(&WSUpdate::Error(err)).unwrap()
+        }))
+    }
+}
+
+impl TryFrom<warp::ws::Message> for WSUpdate {
+    type Error = serde_json::Error;
+
+    fn try_from(msg: warp::ws::Message) -> Result<WSUpdate, serde_json::Error> {
         let str = msg.to_str().unwrap_or("");
         serde_json::de::from_str(&str)
     }

@@ -8,7 +8,7 @@ pub trait ArrowDB: Clone + Send + Sync {
     async fn list_bows(&self) -> Result<Vec<Bow>, sqlx::Error>;
     async fn add_bow(&self, bow: Bow) -> Result<Bow, sqlx::Error>;
     async fn update_bow(&self, bow: Bow) -> Result<Bow, sqlx::Error>;
-    async fn delete_bow(&self, bow_id: i32) -> Result<i32, sqlx::Error>;
+    async fn delete_bow(&self, bow_id: i32) -> Result<u64, sqlx::Error>;
 
     async fn list_measurement_series(&self, id: i32) -> Result<Vec<MeasureSeries>, sqlx::Error>;
     async fn add_measure_series(&self, series: MeasureSeries)
@@ -33,7 +33,7 @@ mockall::mock! {
     async fn list_bows(&self) -> Result<Vec<Bow>, sqlx::Error>;
     async fn add_bow(&self, bow: Bow) -> Result<Bow, sqlx::Error>;
     async fn update_bow(&self, bow: Bow) -> Result<Bow, sqlx::Error>;
-    async fn delete_bow(&self, bow_id: i32) -> Result<(), sqlx::Error>;
+    async fn delete_bow(&self, bow_id: i32) -> Result<u64, sqlx::Error>;
 
     async fn list_measurement_series(&self, id: i32) -> Result<Vec<MeasureSeries>, sqlx::Error>;
     async fn add_measure_series(&self, series: MeasureSeries) -> Result<MeasureSeries, sqlx::Error>;

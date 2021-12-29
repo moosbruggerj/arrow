@@ -5,14 +5,13 @@ use crate::models::*;
 
 use async_trait::async_trait;
 
-use sqlx::Row;
 use sqlx::postgres::PgListener;
 use sqlx::PgPool;
 
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_stream::StreamExt;
 
-use log::trace;
+use log::{trace, debug};
 
 macro_rules! table_matcher {
     ($result:ident, $data:ident, $pool:ident, $(($table:literal, $model:ident, $update:ident)),+) => {
@@ -83,7 +82,8 @@ impl ArrowDB for PgArrowDB {
             name = $1,
             max_draw_distance = $2,
             remainder_arrow_length = $3
-            WHERE id = $4"#,
+            WHERE id = $4
+            RETURNING *"#,
             bow.name,
             bow.max_draw_distance,
             bow.remainder_arrow_length,
@@ -94,15 +94,16 @@ impl ArrowDB for PgArrowDB {
         Ok(bow)
     }
 
-    async fn delete_bow(&self, bow_id: i32) -> Result<i32, sqlx::Error> {
+    async fn delete_bow(&self, bow_id: i32) -> Result<u64, sqlx::Error> {
         let rec = sqlx::query!(
             r#"DELETE FROM bow
             WHERE id = $1"#,
             bow_id
         )
-        .fetch_one(&self.pool)
+        .execute(&self.pool)
         .await?;
-        Ok(rec.try_get(0)?)
+        debug!("{:#?}", rec);
+        Ok(rec.rows_affected())
     }
 
     async fn list_measurement_series(&self, id: i32) -> Result<Vec<MeasureSeries>, sqlx::Error> {

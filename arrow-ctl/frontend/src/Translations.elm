@@ -15,3 +15,8 @@ loading translations =
 cancel : Translations -> String
 cancel translations =
     t translations "cancel"
+
+
+delete : Translations -> String
+delete translations =
+    t translations "delete"

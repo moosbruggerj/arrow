@@ -40,7 +40,7 @@ dataEncoder: Data -> List (Maybe ( String, Encode.Value ))
 dataEncoder { name, maxDrawDistance, remainderArrowLength } =
   [ E.required "name" Encode.string name
   , E.required "max_draw_distance" Length.encode maxDrawDistance
-  , E.required "remainderArrowLength" Length.encode remainderArrowLength
+  , E.required "remainder_arrow_length" Length.encode remainderArrowLength
   ]
 
 idDecoder: Decoder Id

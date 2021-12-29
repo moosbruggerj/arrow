@@ -35,3 +35,13 @@ maxDrawDistance translations =
 remainderArrowLength : Translations -> String
 remainderArrowLength translations =
     t translations "bowSelection.remainderArrowLength"
+
+
+deleteConfirmHeader : Translations -> String
+deleteConfirmHeader translations =
+    t translations "bowSelection.deleteConfirmHeader"
+
+
+deleteConfirm : Translations -> String -> String
+deleteConfirm translations bow =
+    tr translations Curly "bowSelection.deleteConfirm" [ ( "bow", bow ) ]

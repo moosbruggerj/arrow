@@ -181,21 +181,6 @@
       ]
     }
   },
-  "4fd4c2eb42bbb3928f9aba3f41e3ca82b73ba7efdbfb2dfec44308cb0e3fe9b9": {
-    "query": "UPDATE bow \n            SET\n            name = $1,\n            max_draw_distance = $2,\n            remainder_arrow_length = $3\n            WHERE id = $4",
-    "describe": {
-      "columns": [],
-      "parameters": {
-        "Left": [
-          "Varchar",
-          "Float4",
-          "Float4",
-          "Int4"
-        ]
-      },
-      "nullable": []
-    }
-  },
   "84c0075fe12fe7713c292195e9f97960ada138b8e34eb1105d70b15fa6af8ac4": {
     "query": "SELECT * FROM measure_series WHERE id = ANY($1::INT[])",
     "describe": {
@@ -314,6 +299,47 @@
       "parameters": {
         "Left": [
           "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "9f5a9369e93f7106847ed0224c4902112acc31de31d18efccdbeef7638fd60e0": {
+    "query": "UPDATE bow \n            SET\n            name = $1,\n            max_draw_distance = $2,\n            remainder_arrow_length = $3\n            WHERE id = $4\n            RETURNING *",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "max_draw_distance",
+          "type_info": "Float4"
+        },
+        {
+          "ordinal": 3,
+          "name": "remainder_arrow_length",
+          "type_info": "Float4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Float4",
+          "Float4",
+          "Int4"
         ]
       },
       "nullable": [

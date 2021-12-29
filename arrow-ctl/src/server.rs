@@ -4,7 +4,6 @@ pub mod database;
 
 use super::config::Configuration;
 use super::message::WSUpdate;
-use crate::message::WSMessage;
 use log::{error, trace};
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -39,7 +38,7 @@ impl<F: database::ArrowDB + Clone + Send + 'static> Webserver<F> {
 
     pub async fn broadcast(&self, msg: WSUpdate) {
         trace!("broadcasting: {:#?}", msg);
-        let update: ws::Message = WSMessage::Update(msg).into();
+        let update: ws::Message = msg.into();
         self.sockets
             .read()
             .await

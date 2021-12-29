@@ -19,15 +19,26 @@
         "newBow": "Neuer Bogen",
         "name": "Name",
         "maxDrawDistance": "Maximalauszug",
-        "remainderArrowLength": "Restlänge"
+        "remainderArrowLength": "Restlänge",
+		"deleteConfirmHeader": "Löschen",
+		"deleteConfirm": "Wollen Sie wirklich den Bogen '{{bow}}' und alle zugehörigen Messungen löschen?"
     },
     "loading": "Laden",
     "cancel": "Abbruch",
+	"delete": "Ja, löschen",
     "error": {
         "required": "Dises Feld ist notwendig",
         "tooSmall": "Diser Wert ist zu niedrig",
         "tooBig": "Dieser Wert is zu groß",
-        "numberRequired": "Dieser Wert muss eine Nummer sein"
+        "numberRequired": "Dieser Wert muss eine Nummer sein",
+		"unexpectedArgNum": "Unerwartete Anzal an Werten. Erwartet: {{expected}}, gekommen: {{actual}}",
+		"unexpectedDeletion": "Unerwartete Löschnachricht vom Typ {{deletion}}",
+		"unexpectedMessageType": "Unerwartete Antowrt. Erwartet: {{expected}}, gekommen: {{actual}}",
+		"timeout": "Request timeout. Server ist nicht errichbar",
+		"badStatus": "Server antwortete mit Error Code: {{status}}",
+		"badBody": "Antwort konnte nicht geparsed werden: {{error}}",
+		"badUrl": "Ungültiger Url '{{url}}' wurde angefordert",
+		"networkError": "Netzwerk Error: Server nicht errichbar"
     },
     "warning": {
         "tooSmall": "Dieser Wert Wert is nicht plausibel. Er scheint zu klein",

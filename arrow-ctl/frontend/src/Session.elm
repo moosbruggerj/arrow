@@ -1,4 +1,4 @@
-module Session exposing (Session, initSession, addNotifications, IdentifiedNotification, NotificationId, changeLanguage, navKey, toIdString, subscriptions )
+module Session exposing (Session, initSession, addNotifications, IdentifiedNotification, NotificationId, changeLanguage, navKey, toIdString, subscriptions, addApiError )
 
 import I18Next as I18N
 import Browser.Navigation as Nav
@@ -6,6 +6,9 @@ import Notification exposing (Notification)
 import Message exposing (Message)
 import Models.MachineStatus as MachineStatus exposing (MachineStatus)
 import Api
+import Api.Error
+import Http
+import Translations.Error as TError
 
 type alias Session =
     { navKey : Nav.Key
@@ -80,6 +83,32 @@ changeLanguage session lang translations =
 navKey: Session -> Nav.Key
 navKey session =
     session.navKey
+
+apiErrorToText: Session -> Api.Error.Error -> String
+apiErrorToText session error =
+    case error of
+        Api.Error.Http Http.Timeout ->
+            TError.timeout session.translations
+
+        Api.Error.Http (Http.BadStatus status) ->
+            TError.badStatus session.translations (String.fromInt status)
+
+        Api.Error.Http (Http.BadBody e) ->
+            TError.badBody session.translations e
+
+        Api.Error.Http (Http.BadUrl url) ->
+            TError.badUrl session.translations url
+
+        Api.Error.Http Http.NetworkError ->
+            TError.networkError session.translations
+
+        Api.Error.Api e ->
+            translateError session e
+
+addApiError: Session -> Api.Error.Error -> Session
+addApiError session error =
+  addNotifications session [ Notification.toNotification { text = apiErrorToText session error, nType = "error" } ]
+
 
 fromMessage: Session -> Message -> (Session, Message)
 fromMessage session message =

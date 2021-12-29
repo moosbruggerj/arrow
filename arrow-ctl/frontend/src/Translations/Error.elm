@@ -25,3 +25,43 @@ tooBig translations =
 numberRequired : Translations -> String
 numberRequired translations =
     t translations "error.numberRequired"
+
+
+unexpectedArgNum : Translations -> String -> String -> String
+unexpectedArgNum translations expected actual =
+    tr translations Curly "error.unexpectedArgNum" [ ( "expected", expected ), ( "actual", actual ) ]
+
+
+unexpectedMessageType : Translations -> String -> String -> String
+unexpectedMessageType translations expected actual =
+    tr translations Curly "error.unexpectedMessageType" [ ( "expected", expected ), ( "actual", actual ) ]
+
+
+unexpectedDeletion : Translations -> String -> String
+unexpectedDeletion translations deletion =
+    tr translations Curly "error.unexpectedDeletion" [ ( "deletion", deletion ) ]
+
+
+timeout : Translations -> String
+timeout translations =
+    t translations "error.timeout"
+
+
+badStatus : Translations -> String -> String
+badStatus translations status =
+    tr translations Curly "error.badStatus" [ ( "status", status ) ]
+
+
+badBody : Translations -> String -> String
+badBody translations error =
+    tr translations Curly "error.badBody" [ ( "error", error ) ]
+
+
+badUrl : Translations -> String -> String
+badUrl translations url =
+    tr translations Curly "error.badUrl" [ ( "url", url ) ]
+
+
+networkError : Translations -> String
+networkError translations =
+    t translations "error.networkError"

@@ -19,15 +19,28 @@
         "newBow": "New Bow",
         "name": "Name",
         "maxDrawDistance": "Maximum draw distance",
-        "remainderArrowLength": "Remaining arrow length"
+        "remainderArrowLength": "Remaining arrow length",
+		"deleteConfirmHeader": "Delete",
+		"deleteConfirm": "Do you really want to delete bow '{{bow}}' and all related measurements?"
     },
     "loading": "Loading",
     "cancel": "Cancel",
+	"delete": "Yes, delete",
     "error": {
         "required": "This field is required",
         "tooSmall": "This value is too small",
         "tooBig": "This value is too big",
-        "numberRequired": "This value must be a number"
+        "numberRequired": "This value must be a number",
+		"unexpectedArgNum": "Got unexpected number of Arguments. Expected {{expected}}, got {{actual}}",
+		"unexpectedMessageType": "Got an unexpected Response. Expected {{expected}}, got {{actual}}",
+		"unexpectedDeletion": "Unexpected removal message of type {{deletion}}",
+		"timeout": "Server is not reachable. Request timed out.",
+		"badStatus": "Server respended with error status {{status}}",
+		"badBody": "Server response could not be parsed: {{error}}",
+		"badUrl": "Invalid Url '{{url}}' was passed",
+		"networkError": "Network error: Server not reachable"
+
+
     },
     "warning": {
         "tooSmall": "This value seems to small to be plausible",
