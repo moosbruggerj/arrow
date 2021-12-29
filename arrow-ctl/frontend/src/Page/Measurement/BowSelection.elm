@@ -205,14 +205,17 @@ viewListHeader model =
     div 
         [ class "is-fluid"
         , class "columns"
-        , class "mt-3"
+        , class "mt-0"
         , class "box"
         , style "position" "sticky"
         , style "top" "0pt"
+        , style "z-index" "1"
+        , class "has-text-weight-bold"
+        , class "py-0"
         ]
-        [ div [ class "column", class "is-two-fifths" ] [ h5 [] [ text (TBowSelection.name translations) ] ]
-        , div [ class "column" ] [ h5 [] [ text (TBowSelection.maxDrawDistance translations) ] ]
-        , div [ class "column" ] [ h5 [] [ text (TBowSelection.remainderArrowLength translations) ] ]
+        [ div [ class "column", class "is-two-fifths" ] [ span [] [ text (TBowSelection.name translations) ] ]
+        , div [ class "column" ] [ span [] [ text (TBowSelection.maxDrawDistance translations) ] ]
+        , div [ class "column" ] [ span [] [ text (TBowSelection.remainderArrowLength translations) ] ]
         , div [ class "column", class "has-text-right" ] []
         , div [ class "column", class "is-1" ] []
         ]

@@ -31,21 +31,38 @@ type Msg
 view : Session -> (Msg -> msg) -> { title : String, content : Html msg, headerElement: Maybe (Html msg) } -> Browser.Document msg
 view session toMsg { title, content, headerElement} =
     { title = title ++ " Arro(w)"
-    , body = (viewHeader session toMsg headerElement) :: (wrapContent content) :: [ viewFooter ]
+    , body = [ pageLayout (viewHeader session toMsg headerElement) content viewFooter ]
     }
+
+pageLayout: Html msg -> Html msg -> Html msg -> Html msg
+pageLayout header content footer =
+    div [ style "overflow-y" "hidden"
+        , style "height" "100vh"
+        , style "width" "100vw"
+        , class "is-flex"
+        , class "is-flex-direction-column"
+        ]
+        [ header, wrapContent content, footer ]
 
 wrapContent: Html msg -> Html msg
 wrapContent content =
-  div [ class "mt-5", class "container", class "is-fluid", class "is-size-5"] [ content ]
+    div [ class "pt-5"
+        , class "container"
+        , class "is-fluid"
+        , class "is-size-5"
+        , class "is-flex-grow-1"
+        , style "overflow-y" "auto"
+        ] [ content ]
 
 viewHeader : Session -> (Msg -> msg) -> Maybe (Html msg) -> Html msg
 viewHeader session toMsg headerElement =
     div 
         [ class "header"
         , class "is-size-5"
-        , style "position" "sticky"
-        , style "z-index" "1"
-        , style "top" "0"
+        --, style "position" "sticky"
+        --, style "z-index" "1"
+        --, style "top" "0"
+        , class "is-flex-grow-0"
         ]
         [ viewNotifications session |> Html.map toMsg
         , viewTitleBar session toMsg headerElement
