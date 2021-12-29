@@ -59,9 +59,6 @@ viewHeader session toMsg headerElement =
     div 
         [ class "header"
         , class "is-size-5"
-        --, style "position" "sticky"
-        --, style "z-index" "1"
-        --, style "top" "0"
         , class "is-flex-grow-0"
         ]
         [ viewNotifications session |> Html.map toMsg

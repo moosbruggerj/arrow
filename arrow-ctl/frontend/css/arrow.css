@@ -8,6 +8,12 @@
     border-radius: 9999px;
 }
 
+.sticky-header {
+	position: sticky;
+	top: 0px;
+	z-index: 1;
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
     -webkit-appearance: none;

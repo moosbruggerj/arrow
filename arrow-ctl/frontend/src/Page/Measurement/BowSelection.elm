@@ -207,9 +207,7 @@ viewListHeader model =
         , class "columns"
         , class "mt-0"
         , class "box"
-        , style "position" "sticky"
-        , style "top" "0pt"
-        , style "z-index" "1"
+        , class "sticky-header"
         , class "has-text-weight-bold"
         , class "py-0"
         ]
