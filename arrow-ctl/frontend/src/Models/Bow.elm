@@ -1,4 +1,4 @@
-module Models.Bow exposing (Id, Bow, encode, decoder, idDecoder, encodeId, idToString, Data, encodeData, idToInt)
+module Models.Bow exposing (Id, Bow, encode, decoder, idDecoder, encodeId, idToString, Data, encodeData, idToInt, idFromInt)
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Pipeline as D
@@ -62,3 +62,7 @@ idToString (Id id) =
 idToInt: Id -> Int
 idToInt (Id id) =
     id
+
+idFromInt: Int -> Id
+idFromInt id =
+    Id id

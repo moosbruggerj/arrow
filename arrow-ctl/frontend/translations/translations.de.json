@@ -23,6 +23,14 @@
 		"deleteConfirmHeader": "Löschen",
 		"deleteConfirm": "Wollen Sie wirklich den Bogen '{{bow}}' und alle zugehörigen Messungen löschen?"
     },
+	"parameters": {
+		"or": "oder",
+		"name": "Name",
+		"interval": "Messintervall",
+		"restHeight": "Standhöhe",
+		"drawDistance": "Auszug",
+		"drawForce": "Kraft"
+	},
     "loading": "Laden",
     "cancel": "Abbruch",
 	"delete": "Ja, löschen",

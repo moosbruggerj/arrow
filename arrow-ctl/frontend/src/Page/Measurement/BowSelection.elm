@@ -25,19 +25,16 @@ import Models exposing (Persisted(..))
 import Dict exposing (Dict)
 import Http
 import Models.Deletion as Deletion
+import InputState exposing (InputState)
+import InputFields
+import Limits exposing (Limits)
+import InputParser
 
 type alias Config =
     { maxDrawDistanceUnit: LengthUnit
     , remainderArrowLengthUnit: LengthUnit
     , maxDrawDistanceDisplayUnit: LengthUnit
     , remainderArrowLengthDisplayUnit: LengthUnit
-    }
-
-type alias Limits a =
-    { min: Maybe a
-    , max: Maybe a
-    , warningMin: Maybe a
-    , warningMax: Maybe a
     }
 
 type RemoteData a
@@ -64,9 +61,9 @@ type alias FormData =
 
 emptyFormData: FormData
 emptyFormData =
-    { name = Empty
-    , maxDrawDistance = Empty
-    , remainderArrowLength = Empty
+    { name = InputState.Empty
+    , maxDrawDistance = InputState.Empty
+    , remainderArrowLength = InputState.Empty
     }
 
 type EditState
@@ -74,12 +71,6 @@ type EditState
     | New FormData Bool
     | Edit Bow.Id FormData Bool
     | Delete Bow Bool
-
-type InputState a
-    = Empty
-    | Validated a
-    | Error { value: String, error: String }
-    | Warning { value: a, warning: String }
 
 type alias Model =
     { session: Session
@@ -338,67 +329,24 @@ viewForm translations submitMsg config bowData submitting =
         , button [ class "delete", onClick Cancel ] []
         ]
     , section [ class "modal-card-body" ]
-        [ div [ class "field" ]
-            [ label [ class "label", class "is-medium" ] [ text (TBowSelection.name translations) ]
-            , div [ class "control" ]
-                [ input 
-                    [ class "input"
-                    , class "is-medium"
-                    , classList (inputClassList bowData.name)
-                    , type_ "text"
-                    , Attr.value (nameValue bowData.name)
-                    , onInput SetName ] []
-                ]
-            , helpMessage bowData.name
-            ]
-        , div [ class "field" ]
-            [ label [ class "label", class "is-medium" ] [ text (TBowSelection.maxDrawDistance translations) ]
-            , div [ class "field", class "has-addons" ]
-                [ div [ class "control", class "is-expanded" ]
-                    [ input 
-                        [ class "input"
-                        , class "is-medium"
-                        , classList (inputClassList bowData.maxDrawDistance)
-                        , type_ "number"
-                        , onInput SetMaxDrawDistance
-                        , Attr.value (lengthValue bowData.maxDrawDistance config.maxDrawDistanceUnit) 
-                        ] []
-                    ]
-                , div [ class "control" ]
-                    [ span 
-                        [ class "select"
-                        , class "is-medium"
-                        ]
-                        [ select [ onInput SetMaxDrawDistanceUnit ] (unitOptions config.maxDrawDistanceUnit)
-                        ]
-                    ]
-                ]
-            , helpMessage bowData.maxDrawDistance
-            ]
-        , div [ class "field"]
-            [ label [ class "label", class "is-medium" ] [ text (TBowSelection.remainderArrowLength translations) ]
-            , div [ class "field", class "has-addons" ]
-                [ div [ class "control", class "is-expanded" ]
-                    [ input 
-                        [ class "input"
-                        , class "is-medium"
-                        , classList (inputClassList bowData.remainderArrowLength)
-                        , type_ "number"
-                        , onInput SetRemainderArrowLength
-                        , Attr.value (lengthValue bowData.remainderArrowLength config.remainderArrowLengthUnit)
-                        ] []
-                    ]
-                , div [ class "control" ]
-                    [ span 
-                        [ class "select"
-                        , class "is-medium"
-                        ]
-                        [ select [ onInput SetRemainderArrowLengthUnit ] (unitOptions config.remainderArrowLengthUnit)
-                        ]
-                    ]
-                ]
-            , helpMessage bowData.remainderArrowLength
-            ]
+        [ InputFields.textField
+            (TBowSelection.name translations)
+            bowData.name
+            SetName
+        , InputFields.lengthField
+            (TBowSelection.maxDrawDistance translations)
+            bowData.maxDrawDistance
+            config.maxDrawDistanceUnit
+            { toValueMsg = SetMaxDrawDistance
+            , toUnitMsg = SetMaxDrawDistanceUnit
+            }
+        , InputFields.lengthField
+            (TBowSelection.remainderArrowLength translations)
+            bowData.remainderArrowLength
+            config.remainderArrowLengthUnit
+            { toValueMsg = SetRemainderArrowLength
+            , toUnitMsg = SetRemainderArrowLengthUnit
+            }
         ]
     , footer [ class "modal-card-foot" ]
         [ button [ class "button", class "is-success", class "is-medium", classList [ ("is-loading", submitting ) ], disabled submitting, onClick submitMsg ] [ text (TBowSelection.saveBow translations) ]
@@ -406,93 +354,10 @@ viewForm translations submitMsg config bowData submitting =
         ]
     ]
 
-inputClassList: InputState a -> List (String, Bool)
-inputClassList state =
-    case state of
-        Empty ->
-            [("", False)]
-
-        Validated _ ->
-            [("is-success", True)]
-
-        Error _ ->
-            [("is-danger", True)]
-
-        Warning _ ->
-            [("has-text-warning-dark", True)]
-
-unitOptions: LengthUnit -> List (Html Msg)
-unitOptions selected =
-    List.map (unitOption selected) LengthUnit.allUnits
-
-unitOption: LengthUnit -> LengthUnit -> Html Msg
-unitOption selected unit =
-    let
-        unitString = LengthUnit.toString unit
-    in
-    option [ Attr.value unitString, Attr.selected (unit == selected) ] [ text unitString ]
-
-helpMessage: InputState a -> Html msg
-helpMessage state =
-    let
-        (class, message) =
-            case state of
-                Empty ->
-                    (Nothing, "\u{00A0}")
-
-                Validated _ ->
-                    (Nothing, "\u{00A0}")
-
-                Error {value, error} ->
-                    (Just "is-danger", error)
-
-                Warning {value, warning} ->
-                    (Just "has-text-warning-dark", warning)
-
-        toTuple =
-            Maybe.map (\cl -> (cl, True))
-                >> Maybe.withDefault ("", False)
-    in
-    p [ classList [ ("help", True), ("is-medium", True), toTuple class ] ] [ text message ]
-
-nameValue: InputState String -> String
-nameValue state =
-    case state of
-        Empty ->
-            ""
-
-        Validated value ->
-            value
-
-        Error {value, error} ->
-            value
-
-        Warning {value, warning} ->
-            value
-
-lengthValue: InputState Length -> LengthUnit -> String
-lengthValue state unit =
-    case state of
-        Empty ->
-            ""
-
-        Validated value ->
-            value
-                |> Length.to unit
-                |> Length.toString
-
-        Error {value, error} ->
-            value
-
-        Warning {value, warning} ->
-            value
-                |> Length.to unit
-                |> Length.toString
-
 formTitle: I18N.Translations -> FormData -> String
 formTitle translations bowData =
     let
-        name = nameValue bowData.name
+        name = InputState.stringValue bowData.name identity
     in
     (TBowSelection.newBow translations) ++ 
     (if String.length name /= 0
@@ -536,7 +401,7 @@ viewFooter model =
                 , class "is-primary"
                 , class "is-large"
                 , class "is-size-3"
-                , onClick NewBow
+                , onClick NewBow -- TODO: fix Msg
                 , classList [ ("is-hidden", List.length href /= 1) ]
                 ] ++ href)
                 [ span 
@@ -640,7 +505,7 @@ update message model =
                 editState =
                     updateEditState model.edit
                     (\data ->
-                        { data | name = parseName name translations}
+                        { data | name = InputParser.required name translations}
                     )
             in
             ( { model | edit = editState }, Cmd.none )
@@ -650,7 +515,7 @@ update message model =
                 editState =
                     updateEditState model.edit
                     (\data ->
-                        { data | maxDrawDistance = parseLength distance model.config.maxDrawDistanceUnit maxDrawDistanceLimits translations }
+                        { data | maxDrawDistance = InputParser.length distance model.config.maxDrawDistanceUnit maxDrawDistanceLimits translations }
                     )
             in
             ( { model | edit = editState }, Cmd.none )
@@ -660,7 +525,7 @@ update message model =
                 editState =
                     updateEditState model.edit
                     (\data ->
-                        { data | remainderArrowLength = parseLength remainder model.config.remainderArrowLengthUnit remainderArrowLengthLimits translations }
+                        { data | remainderArrowLength = InputParser.length remainder model.config.remainderArrowLengthUnit remainderArrowLengthLimits translations }
                     )
             in
             ( { model | edit = editState }, Cmd.none )
@@ -777,28 +642,19 @@ expectBow translations msg =
 editFromBow: Bow -> EditState
 editFromBow (Persisted id data) =
     Edit id
-        { name = Validated data.name
-        , maxDrawDistance = Validated data.maxDrawDistance
-        , remainderArrowLength = Validated data.remainderArrowLength
+        { name = InputState.Validated data.name
+        , maxDrawDistance = InputState.Validated data.maxDrawDistance
+        , remainderArrowLength = InputState.Validated data.remainderArrowLength
         }
         False
 
-inputStateToMaybe : InputState a -> Maybe a
-inputStateToMaybe state = 
-    case state of
-        Validated a ->
-            Just a
-        Warning { value } ->
-            Just value
-        _ ->
-            Nothing
 
 parseBowForm: FormData -> Maybe Bow.Data
 parseBowForm data =
     let
-        name = inputStateToMaybe data.name
-        maxDrawDistance = inputStateToMaybe data.maxDrawDistance
-        remainderArrowLength = inputStateToMaybe data.remainderArrowLength
+        name = InputState.toMaybe data.name
+        maxDrawDistance = InputState.toMaybe data.maxDrawDistance
+        remainderArrowLength = InputState.toMaybe data.remainderArrowLength
     in
     case (name, maxDrawDistance, remainderArrowLength) of
         (Just n, Just dd, Just rem) ->
@@ -862,18 +718,7 @@ updateEditState state updater =
 
 updateLength: InputState Length -> LengthUnit -> InputState Length
 updateLength state unit =
-    case state of
-        Empty ->
-            Empty
-
-        Validated length ->
-            Validated (Length.to unit length)
-
-        Error err ->
-            Error err
-
-        Warning { value, warning } ->
-            Warning { value = Length.to unit value, warning = warning }
+    InputState.update state (Length.to unit)
 
 updateOnMessage : Model -> Message -> ( Model, Cmd Msg )
 updateOnMessage model msg =
@@ -914,64 +759,6 @@ updateBowList model bows setSelected =
         _ ->
             List.indexedMap (\i b -> (Bow.idToInt (Models.toId b), (b, i == 0 && setSelected))) bows
                 |> Dict.fromList
-
-
--- VALIDATION
-parseName: String -> I18N.Translations -> InputState String
-parseName name translations =
-    if name == "" then
-        Error { value = name, error = TError.required translations }
-    else
-        Validated name
-
-parseLength: String -> LengthUnit -> Limits Length -> I18N.Translations -> InputState Length
-parseLength input unit limits translations =
-    let
-        value = String.toFloat input
-    in
-    case value of
-        Just val ->
-            checkLimits (Length.fromParts val unit) limits translations
-
-        Nothing ->
-            Error { value = input, error = TError.numberRequired translations }
-
-checkLimits: Length -> Limits Length -> I18N.Translations -> InputState Length
-checkLimits value limits translations =
-    let
-        less: Length -> Maybe Length -> Bool
-        less val limit = 
-            case limit of
-                Nothing ->
-                    False
-
-                Just l ->
-                    Length.less value l
-
-        greater: Length -> Maybe Length -> Bool
-        greater val limit = 
-            case limit of
-                Nothing ->
-                    False
-
-                Just l ->
-                    Length.less l value
-
-    in
-    if less value limits.min then
-        Error { value = Length.toString value, error = TError.tooSmall translations }
-
-    else if greater value limits.max then
-        Error { value = Length.toString value, error = TError.tooBig translations }
-
-    else if less value limits.warningMin then
-        Warning { value = value, warning = TWarning.tooSmall translations }
-
-    else if greater value limits.warningMax then
-        Warning { value = value, warning = TWarning.tooBig translations }
-
-    else
-        Validated value
 
 
 toSession: Model -> Session

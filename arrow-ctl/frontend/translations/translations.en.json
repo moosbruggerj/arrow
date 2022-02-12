@@ -23,6 +23,14 @@
 		"deleteConfirmHeader": "Delete",
 		"deleteConfirm": "Do you really want to delete bow '{{bow}}' and all related measurements?"
     },
+	"parameters": {
+		"or": "or",
+		"name": "Name",
+		"interval": "Measure interval",
+		"restHeight": "Rest height",
+		"drawDistance": "Draw distance",
+		"drawForce": "Draw Force"
+	},
     "loading": "Loading",
     "cancel": "Cancel",
 	"delete": "Yes, delete",

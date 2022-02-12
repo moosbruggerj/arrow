@@ -13,6 +13,7 @@ import Notification exposing (Notification)
 import Page.Settings as Settings
 import Page.Home as Home
 import Page.Measurement.BowSelection as BowSelection
+import Page.Measurement.Parameters as Parameters
 import Page.Blank
 import Page.NotFound
 import Route exposing (Route)
@@ -47,6 +48,7 @@ type Model
     | Home Home.Model
     | Settings Settings.Model
     | BowSelection BowSelection.Model
+    | Parameters Parameters.Model
 
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
@@ -74,6 +76,7 @@ type Msg
     | HomeMsg Home.Msg
     | BowSelectionMsg BowSelection.Msg
     | GotMessage Session Message
+    | ParametersMsg Parameters.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -109,6 +112,10 @@ update msg model =
         (BowSelectionMsg bowSelectionMsg, BowSelection bowSelection) ->
             BowSelection.update bowSelectionMsg bowSelection
                 |> updateWith BowSelection BowSelectionMsg
+
+        (ParametersMsg parametersMsg, Parameters parameters) ->
+            Parameters.update parametersMsg parameters
+                |> updateWith Parameters ParametersMsg
 
         (GotMessage session message, NotFound _) ->
             (updateSession model session, Cmd.none)
@@ -151,6 +158,9 @@ updateSession model session =
         BowSelection bowSelection ->
             BowSelection (BowSelection.updateSession session bowSelection)
 
+        Parameters parameters ->
+            Parameters (Parameters.updateSession session parameters)
+
 
 toSession: Model -> Session
 toSession model =
@@ -169,6 +179,9 @@ toSession model =
 
         BowSelection bowSelection ->
             BowSelection.toSession bowSelection
+
+        Parameters parameters ->
+            Parameters.toSession parameters
 
 changeRouteTo: Maybe Route -> Model -> (Model, Cmd Msg)
 changeRouteTo route model =
@@ -191,6 +204,11 @@ changeRouteTo route model =
             BowSelection.init session
                 |> updateWith BowSelection BowSelectionMsg
 
+        Just (Route.MeasurementParameters id) ->
+            Parameters.init session
+                |> updateWith Parameters ParametersMsg
+
+
 -- SUBSCRIPTIONS
 
 
@@ -212,6 +230,8 @@ subscriptions model =
         BowSelection bowSelection ->
             Sub.map BowSelectionMsg (BowSelection.subscriptions bowSelection)
 
+        Parameters parameters ->
+            Sub.map ParametersMsg (Parameters.subscriptions parameters)
 
 -- VIEW
 
@@ -243,6 +263,11 @@ view model =
         BowSelection bowSelection ->
             BowSelection.view bowSelection
                 |> mapDocumentType BowSelectionMsg
+                |> viewPage
+
+        Parameters parameters ->
+            Parameters.view parameters
+                |> mapDocumentType ParametersMsg
                 |> viewPage
 
 type alias PageDocument a =
